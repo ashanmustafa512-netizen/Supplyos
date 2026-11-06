@@ -1,0 +1,33 @@
+This app is for Factories to manage properly
+There will be a web app for admins
+1 Web and mobile app for creating a booking 
+1 web and mobile app for dispatch managing 
+This will be called distribution and supply chain management 
+The main web app will contain many modules and some animations as well which will be smooth interface changing, some motion when hovering on options and a well optimzed professional looking web interface
+The modules will be displayed at the home page with each having a seperate frame and there will be three in row and total these will be split into 3 rows and 3 columns.
+Before someone accesses the web app,The main admin app,There will be a login page where thay have to sign in to prove that they are the right person for it.
+The modules are listed below 
+Modules:
+There will be 7 modules which are:
+1.Bookings
+2.Dispatch
+3.Route Planning & Geo fencing
+4.Precurement,Stock,warehouse
+5.Accounting
+6.Sales and recovery
+7.Payroll
+
+so these seven modules will be clickable and when clicked they take you to their respective module page.
+Now i will tell you properties of each module seperatively and what they should contain to improve customer satisfaction.
+1.Booking module:
+When clicked this module will open and there will be a side bar which will contain a dashboard,bookings,reserve stock, targets, Earlywarning systems,Graphical analysis of bookings comparing each month,Credit limit for each customer,reports and configuration header which contains settings tab.
+So in the dashboard, There will be a analysis Above which will be redirect buttons to bookings which will display Todays booking in the dashboard.Then aside it well be pending approval option which shows the bookings that need to be viewed and approved and it also redirects to approval rab and then there are some other major things as approval rate(in %),average order(its price),Montly booking approved price and cancelled orders price
+below these tab there is Daily booking trend that shows how much bookings are made on each day of the month and besides its is Action required module that shows potential errors and approvals that are pending
+next is booking tab in side panel when clicked it will take you to a page where there are several options first there are modules 5 in a row of how many orders are pending to be approved and how many are cancelled, how many are rejected,how many are completed and the booking that are remade this month 
+below it is search tab where you can serach through bookings and apply filters like on the region basis on location basis like a specific city
+And when you click on any of these options it shows a database below e.g: when clicked on pending approvals module the database down shows the bookings that are pending and same goes for each button when click cancelled bookings it changes the database down to cancelled bookings and so on 
+above these modules is a create  abooking option which lets you manually create a booking if required anytime otherwise the bookings will be automated from the bookings app or web app.
+then there are option undet the search module for example if click pending approvals the buttons will be bulk approve which will give you options to compare your current stock with the orders and approve those that are available it also gives you option as of approve on the regional basis and on certain parameters , you can also set those parameters on score basis 
+Note: There will be a score of each system that will be calculated on the basis of their credit limit for each shop,this score will be displayed in the booking database there will be calculation of each order un the databse showing their orders total price the price it costs us the profits and so on for each shop and then there will be a custom button where you can select to either decreace or enhance each shops score the the last tab in this database will be 4 option the tick option will let you apprve this booking the cross will cancel it the edit will let you edit the order and there a more option butto n which will contain the remaining option that you can perform on each booking or order 
+the credit limit wil be a important thing that checks each customers relability and their score.
+ 

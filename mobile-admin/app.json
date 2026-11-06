@@ -1,0 +1,19 @@
+{
+  "expo": {
+    "name": "SupplyOS Admin",
+    "slug": "supplyos-admin-dispatch",
+    "scheme": "supplyosadmin",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "android": {
+      "package": "com.supplyos.admin",
+      "permissions": [
+        "INTERNET"
+      ],
+      "adaptiveIcon": {
+        "backgroundColor": "#0B1220"
+      }
+    }
+  }
+}

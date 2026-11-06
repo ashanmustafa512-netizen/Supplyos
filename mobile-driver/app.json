@@ -1,0 +1,23 @@
+{
+  "expo": {
+    "name": "SupplyOS Employee",
+    "slug": "supplyos-employee",
+    "scheme": "supplyosemployee",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "android": {
+      "package": "com.supplyos.employee",
+      "permissions": ["ACCESS_COARSE_LOCATION", "ACCESS_FINE_LOCATION", "ACCESS_BACKGROUND_LOCATION", "FOREGROUND_SERVICE", "FOREGROUND_SERVICE_LOCATION", "POST_NOTIFICATIONS"],
+      "adaptiveIcon": { "backgroundColor": "#0B1220" }
+    },
+    "plugins": [
+      ["expo-location", {
+        "locationWhenInUsePermission": "SupplyOS uses location only during a work shift or delivery trip that you explicitly start.",
+        "locationAlwaysAndWhenInUsePermission": "SupplyOS uses location in the background only during your active work shift or authorized delivery trip.",
+        "isAndroidBackgroundLocationEnabled": true,
+        "isAndroidForegroundServiceEnabled": true
+      }]
+    ]
+  }
+}

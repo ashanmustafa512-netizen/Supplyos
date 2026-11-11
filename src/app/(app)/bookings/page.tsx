@@ -12,25 +12,46 @@ type SearchParams = Promise<{ success?: string; error?: string }>;
 export default async function BookingsPage({ searchParams }: { searchParams: SearchParams }) {
   const params = await searchParams;
   const { supabase } = await requireUser();
-  const { data, error } = await supabase
-    .from("bookings")
-    .select("id, booking_no, booking_date, status, total_amount, total_cost, profit, score_snapshot, city, region, notes, created_at, customers(name, customer_code), booking_items(quantity, products(name, sku))")
-    .order("created_at", { ascending: false })
-    .limit(500);
-
-  const bookings = (data ?? []) as unknown as BookingRow[];
   const monthParts = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Karachi", year: "numeric", month: "2-digit" }).formatToParts(new Date());
   const year = monthParts.find(part => part.type === "year")?.value ?? "2026";
   const month = monthParts.find(part => part.type === "month")?.value ?? "01";
   const monthStart = `${year}-${month}-01`;
-  const { data: monthData } = await supabase.from("bookings").select("status, total_amount").gte("booking_date", monthStart);
-  const monthRows = monthData ?? [];
-  const approvedRows = monthRows.filter(row => row.status === "approved" || row.status === "completed");
-  const cancelledRows = monthRows.filter(row => row.status === "cancelled");
-  const approvalRate = monthRows.length ? Math.round(approvedRows.length / monthRows.length * 100) : 0;
-  const averageOrder = monthRows.length ? monthRows.reduce((sum, row) => sum + Number(row.total_amount ?? 0), 0) / monthRows.length : 0;
-  const approvedValue = approvedRows.reduce((sum, row) => sum + Number(row.total_amount ?? 0), 0);
-  const cancelledValue = cancelledRows.reduce((sum, row) => sum + Number(row.total_amount ?? 0), 0);
+  const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Karachi", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
+  const [{ data, error }, summaryResult] = await Promise.all([
+    supabase.from("bookings")
+      .select("id, booking_no, booking_date, status, total_amount, total_cost, profit, score_snapshot, city, region, notes, created_at, customers(name, customer_code), booking_items(quantity, products(name, sku))")
+      .order("created_at", { ascending: false })
+      .limit(500),
+    supabase.rpc("supplyos_dashboard_summary", { p_month_start: monthStart, p_today: today }),
+  ]);
+
+  const bookings = (data ?? []) as unknown as BookingRow[];
+  type BookingSummary = {
+    order_count?: number; approved_count?: number; approved_value?: number | string;
+    cancelled_value?: number | string; total_value?: number | string;
+  };
+  let summary = (summaryResult.data ?? null) as BookingSummary | null;
+  if (summaryResult.error || !summary) {
+    const { data: rows } = await supabase.from("bookings")
+      .select("status, total_amount")
+      .gte("booking_date", monthStart)
+      .limit(1500);
+    const monthRows = rows ?? [];
+    const approvedRows = monthRows.filter(row => row.status === "approved" || row.status === "completed");
+    const cancelledRows = monthRows.filter(row => row.status === "cancelled");
+    summary = {
+      order_count: monthRows.length,
+      approved_count: approvedRows.length,
+      total_value: monthRows.reduce((sum, row) => sum + Number(row.total_amount ?? 0), 0),
+      approved_value: approvedRows.reduce((sum, row) => sum + Number(row.total_amount ?? 0), 0),
+      cancelled_value: cancelledRows.reduce((sum, row) => sum + Number(row.total_amount ?? 0), 0),
+    };
+  }
+  const monthCount = Number(summary.order_count ?? 0);
+  const approvalRate = monthCount ? Math.round(Number(summary.approved_count ?? 0) / monthCount * 100) : 0;
+  const averageOrder = monthCount ? Number(summary.total_value ?? 0) / monthCount : 0;
+  const approvedValue = Number(summary.approved_value ?? 0);
+  const cancelledValue = Number(summary.cancelled_value ?? 0);
   return (
     <div className="page-stack">
       <div className="page-heading-row"><div><div className="eyebrow">ORDER MANAGEMENT</div><h1>Bookings <span className="heading-count">{bookings.length}</span></h1><p>Review customer orders, protect inventory, and keep approvals moving.</p></div><div className="heading-actions"><Link href="/bookings/new" className="button button-primary"><Plus size={17}/> Create booking</Link></div></div>

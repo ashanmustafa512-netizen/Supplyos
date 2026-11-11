@@ -1,16 +1,17 @@
+import { cache } from "react";
 import { redirect } from "next/navigation";
 import { isSupabaseConfigured } from "@/lib/env";
 import { createClient } from "@/lib/supabase/server";
 
-export async function requireUser() {
+export const requireUser = cache(async function requireUser() {
   if (!isSupabaseConfigured) redirect("/setup");
   const supabase = await createClient();
   const { data, error } = await supabase.auth.getUser();
   if (error || !data.user) redirect("/login");
   return { supabase, user: data.user };
-}
+});
 
-export async function getWorkspace(supabase: Awaited<ReturnType<typeof createClient>>, userId: string) {
+export const getWorkspace = cache(async function getWorkspace(supabase: Awaited<ReturnType<typeof createClient>>, userId: string) {
   let { data: membership, error: membershipError } = await supabase
     .from("memberships")
     .select("organization_id, role")
@@ -43,4 +44,4 @@ export async function getWorkspace(supabase: Awaited<ReturnType<typeof createCli
     .eq("id", membership.organization_id)
     .maybeSingle();
   return { organization, membership };
-}
+});

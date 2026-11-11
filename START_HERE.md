@@ -69,13 +69,17 @@ Dashboard, bookings, customers, dispatch, routes/geofencing, stock/warehouse, sa
 
 For the role/workspace bootstrap and factory-coordinate save fix, review `docs/PRODUCTION_GEOFENCING_GUIDE.md` and apply `supabase/migrations/20261028190000_workspace_and_geofence_reliability.sql` only after checking your existing migration history. Then apply `supabase/migrations/20261028190500_accuracy_aware_fleet_gps.sql` for verified GPS updates. Do not blindly replay database migrations.
 
-## 7. Mobile source (optional)
+## 7. Performance update
+
+The dashboard and Bookings analytics use the database-side `supplyos_dashboard_summary` function so monthly totals and low-stock alerts are aggregated in Postgres instead of transferring large record lists. Apply `supabase/migrations/20261111173000_dashboard_summary_performance.sql` once to the target Supabase project after checking its migration history. The Routes map receives normal GPS changes through Realtime; its polling fallback runs every 30 seconds and pauses while the browser tab is hidden.
+
+## 8. Mobile source (optional)
 
 - `mobile-driver/`: native employee location/trip-tracking app. It is separate from the website and needs its own `.env` plus an Android native/cloud build.
 - `mobile-admin/`: optional Android WebView wrapper for the deployed website. Set `EXPO_PUBLIC_ADMIN_URL` to your real deployed HTTPS website URL before building it.
 - For APK build details, read `ANDROID_APK_BUILDS.md` and the mobile folders' own README files. This package contains source/configuration, not precompiled APK files.
 
-## 8. Troubleshooting
+## 9. Troubleshooting
 
 - **`npm` is not recognized:** install Node.js 22 LTS, close and reopen the terminal, then retry.
 - **Wrong Node.js version:** run `node -v`; use Node.js 22.x as pinned by `.nvmrc` and `package.json`.

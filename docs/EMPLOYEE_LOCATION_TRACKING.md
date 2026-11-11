@@ -21,7 +21,7 @@ RPCs:
 - `stop_employee_location_shift(p_session_id uuid, p_reason text)` — employee stops their own session.
 - `admin_stop_employee_location_shift(...)` — owner/admin/manager/dispatcher closes a session.
 
-Direct client writes to the table are not granted. The dispatcher map reads active sessions under RLS and receives Supabase Realtime updates; a 12-second refresh is retained as fallback.
+Direct client writes to the table are not granted. The dispatcher map reads active sessions under RLS and receives Supabase Realtime updates; a 30-second refresh is retained as fallback.
 
 ## Android setup
 1. Install Node.js LTS, Android Studio/SDK, and a physical Android phone.

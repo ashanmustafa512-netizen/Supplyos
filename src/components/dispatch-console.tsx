@@ -185,21 +185,30 @@ export function DispatchConsole(props: {
     return matchesSearch && (loadStatusFilter === "all" || load.status === loadStatusFilter);
   }), [liveLoads, loadSearch, loadStatusFilter]);
   const currentTruckIds = useMemo(() => new Set(liveLoads.filter(isOpenLoad).map(load => load.assigned_truck_id).filter(Boolean) as string[]), [liveLoads]);
-  const availableTrucks = liveTrucks.filter(truck => truck.status === "available");
-  const inTransitLoads = liveLoads.filter(load => load.status === "in_transit");
-  const deliveredLoads = liveLoads.filter(load => load.status === "delivered");
-  const todayDelivered = deliveredLoads.filter(load => load.delivered_at?.slice(0, 10) === props.today);
-  const totalInTransitOrders = inTransitLoads.reduce((sum, load) => sum + Number(load.booking_count), 0);
-  const deliveredOrders = deliveredLoads.reduce((sum, load) => sum + Number(load.booking_count), 0);
-  const estimatedSpend = liveLoads.filter(load => ["delivered", "in_transit"].includes(load.status)).reduce((sum, load) => sum + Number(load.estimated_cost ?? 0), 0);
-  const averageUtilization = liveLoads.filter(load => load.status !== "cancelled" && load.capacity_orders > 0).length
-    ? Math.round(liveLoads.filter(load => load.status !== "cancelled" && load.capacity_orders > 0).reduce((sum, load) => sum + Number(load.booking_count) / Number(load.capacity_orders), 0) / liveLoads.filter(load => load.status !== "cancelled" && load.capacity_orders > 0).length * 100)
-    : 0;
-  const highReservationProducts = props.products.filter(product => Number(product.stock_on_hand) > 0 && Number(product.stock_reserved) / Number(product.stock_on_hand) >= 0.85);
-  const dispatchReadyLoads = liveLoads.filter(load => load.status === "ready" && load.loading_status === "loaded" && !!load.assigned_truck_id && liveTruckPasses.some(pass => pass.load_id === load.id && pass.truck_id === load.assigned_truck_id && pass.status === "cleared"));
-  const locations = [...new Set(props.bookings.map(booking => booking.city).filter(Boolean))].sort();
+  const availableTrucks = useMemo(() => liveTrucks.filter(truck => truck.status === "available"), [liveTrucks]);
+  const inTransitLoads = useMemo(() => liveLoads.filter(load => load.status === "in_transit"), [liveLoads]);
+  const deliveredLoads = useMemo(() => liveLoads.filter(load => load.status === "delivered"), [liveLoads]);
+  const todayDelivered = useMemo(() => deliveredLoads.filter(load => load.delivered_at?.slice(0, 10) === props.today), [deliveredLoads, props.today]);
+  const totalInTransitOrders = useMemo(() => inTransitLoads.reduce((sum, load) => sum + Number(load.booking_count), 0), [inTransitLoads]);
+  const deliveredOrders = useMemo(() => deliveredLoads.reduce((sum, load) => sum + Number(load.booking_count), 0), [deliveredLoads]);
+  const estimatedSpend = useMemo(() => liveLoads.filter(load => ["delivered", "in_transit"].includes(load.status)).reduce((sum, load) => sum + Number(load.estimated_cost ?? 0), 0), [liveLoads]);
+  const averageUtilization = useMemo(() => {
+    const eligibleLoads = liveLoads.filter(load => load.status !== "cancelled" && load.capacity_orders > 0);
+    if (!eligibleLoads.length) return 0;
+    const utilization = eligibleLoads.reduce((sum, load) => sum + Number(load.booking_count) / Number(load.capacity_orders), 0);
+    return Math.round(utilization / eligibleLoads.length * 100);
+  }, [liveLoads]);
+  const highReservationProducts = useMemo(() => props.products.filter(product => Number(product.stock_on_hand) > 0 && Number(product.stock_reserved) / Number(product.stock_on_hand) >= 0.85), [props.products]);
+  const clearedTruckPassKeys = useMemo(() => new Set(liveTruckPasses
+    .filter(pass => pass.status === "cleared")
+    .map(pass => `${pass.load_id}:${pass.truck_id}`)), [liveTruckPasses]);
+  const dispatchReadyLoads = useMemo(() => liveLoads.filter(load =>
+    load.status === "ready" && load.loading_status === "loaded" && !!load.assigned_truck_id
+      && clearedTruckPassKeys.has(`${load.id}:${load.assigned_truck_id}`)
+  ), [liveLoads, clearedTruckPassKeys]);
+  const locations = useMemo(() => [...new Set(props.bookings.map(booking => booking.city).filter(Boolean))].sort(), [props.bookings]);
   const modeDescription = GROUPING_MODES.find(mode => mode.value === groupingMode)?.description ?? "";
-  const activeTruckPass = truckPassLoadId ? liveTruckPasses.find(pass => pass.load_id === truckPassLoadId) ?? null : null;
+  const activeTruckPass = useMemo(() => truckPassLoadId ? liveTruckPasses.find(pass => pass.load_id === truckPassLoadId) ?? null : null, [liveTruckPasses, truckPassLoadId]);
   const activeTruckPassSnapshot = activeTruckPass?.inspection_snapshot ?? {};
   const activeTruckPassLoadSnapshot = (activeTruckPassSnapshot.load as Record<string, unknown> | undefined) ?? {};
   const activeTruckPassTruckSnapshot = (activeTruckPassSnapshot.truck as Record<string, unknown> | undefined) ?? {};

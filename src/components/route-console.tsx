@@ -54,24 +54,26 @@ export function RouteConsole({ initialRoutes, initialTrucks, initialFactory, ini
   const lastGpsSendMsRef = useRef(0);
   const gpsSendingRef = useRef(false);
   const mountedRef = useRef(true);
+  const refreshInFlightRef = useRef(false);
+  const routeIdsRef = useRef(initialRoutes.map(route => route.id));
 
   useEffect(() => {
     mountedRef.current = true;
     const supabase = createClient();
+    const routeIds = routeIdsRef.current;
     async function refreshLocations() {
-      const [{ data, error }, { data: activeLoads }, { data: factoryRow }, { data: employeeRows }] = await Promise.all([
-        supabase.from("dispatch_trucks").select("id,registration_no,display_name,driver_name,status,current_latitude,current_longitude,location_updated_at,factory_distance_m,factory_geofence_state,factory_geofence_checked_at,current_city,capacity_orders,capacity_kg,location_source,current_location_accuracy_m").order("created_at", { ascending: false }).limit(500),
-        supabase.from("dispatch_loads").select("id").in("status", ["ready", "in_transit"]).limit(500),
-        supabase.from("memberships").select("organization_id").limit(1).maybeSingle(),
-        supabase.from("employee_location_sessions").select("id,user_id,employee_name,current_latitude,current_longitude,last_location_at,current_location_accuracy_m,factory_distance_m,factory_geofence_state,started_at").is("ended_at", null).order("started_at", { ascending: false }).limit(500),
-      ]);
-      if (!mountedRef.current || error || !data) return;
-      const updated = (data as unknown as TruckRow[]).map(fromTruckRow);
-      const activeIds = (activeLoads ?? []).map(load => load.id);
-      const { data: states } = activeIds.length
-        ? await supabase.from("dispatch_geofence_states").select("load_id,booking_id,state,distance_m,radius_m,last_checked_at").in("load_id", activeIds).limit(2000)
-        : { data: [] as Array<Record<string, unknown>> };
-      if (!mountedRef.current) return;
+      if (!mountedRef.current || refreshInFlightRef.current || document.visibilityState !== "visible") return;
+      refreshInFlightRef.current = true;
+      try {
+        const [{ data, error }, { data: employeeRows }, { data: states }] = await Promise.all([
+          supabase.from("dispatch_trucks").select("id,registration_no,display_name,driver_name,status,current_latitude,current_longitude,location_updated_at,factory_distance_m,factory_geofence_state,factory_geofence_checked_at,current_city,capacity_orders,capacity_kg,location_source,current_location_accuracy_m").order("created_at", { ascending: false }).limit(250),
+          supabase.from("employee_location_sessions").select("id,user_id,employee_name,current_latitude,current_longitude,last_location_at,current_location_accuracy_m,factory_distance_m,factory_geofence_state,started_at").is("ended_at", null).order("started_at", { ascending: false }).limit(200),
+          routeIds.length
+            ? supabase.from("dispatch_geofence_states").select("load_id,booking_id,state,distance_m,radius_m,last_checked_at").in("load_id", routeIds).limit(2000)
+            : Promise.resolve({ data: [] as Array<Record<string, unknown>>, error: null }),
+        ]);
+        if (!mountedRef.current || error || !data) return;
+        const updated = (data as unknown as TruckRow[]).map(fromTruckRow);
       const stateByKey = new Map<string, Record<string, unknown>>((states ?? []).map(state => [
         String((state as Record<string, unknown>).load_id) + ":" + String((state as Record<string, unknown>).booking_id),
         state as Record<string, unknown>,
@@ -93,17 +95,15 @@ export function RouteConsole({ initialRoutes, initialTrucks, initialFactory, ini
         }),
       })));
       setLastRefreshAt(updatedAt);
-      // Factory configuration is refreshed only when this workspace membership can be resolved.
-      if (factoryRow?.organization_id) {
-        const { data: org } = await supabase.from("organizations").select("name,factory_address,factory_latitude,factory_longitude,factory_geofence_radius_m").eq("id", factoryRow.organization_id).maybeSingle();
-        if (mountedRef.current && org) {
-          setFactory({ name: String(org.name ?? "Factory"), address: String(org.factory_address ?? ""), latitude: org.factory_latitude == null ? null : Number(org.factory_latitude), longitude: org.factory_longitude == null ? null : Number(org.factory_longitude), radiusM: Number(org.factory_geofence_radius_m ?? 250) });
-        }
+      } finally {
+        refreshInFlightRef.current = false;
       }
     }
-    // Fetch immediately on entry so the fleet map is not blank/stale for the first 12 seconds.
+    // Realtime delivers normal GPS changes; this slower poll is only a recovery path.
     void refreshLocations();
-    const interval = window.setInterval(() => void refreshLocations(), 12000);
+    const refreshWhenVisible = () => { if (document.visibilityState === "visible") void refreshLocations(); };
+    const interval = window.setInterval(refreshWhenVisible, 30000);
+    document.addEventListener("visibilitychange", refreshWhenVisible);
     // Authorized clients receive truck changes through Supabase Realtime (RLS still applies).
     // The polling refresh remains as a recovery path for dropped WebSocket connections.
     const channel = supabase.channel("supplyos-fleet-live-trucks")
@@ -131,7 +131,7 @@ export function RouteConsole({ initialRoutes, initialTrucks, initialFactory, ini
         });
         setLastRefreshAt(new Date().toISOString());
       }).subscribe();
-    return () => { mountedRef.current = false; window.clearInterval(interval); void supabase.removeChannel(channel); };
+    return () => { mountedRef.current = false; window.clearInterval(interval); document.removeEventListener("visibilitychange", refreshWhenVisible); void supabase.removeChannel(channel); };
   }, []);
 
   useEffect(() => () => {

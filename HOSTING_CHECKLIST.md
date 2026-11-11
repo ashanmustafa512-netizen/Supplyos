@@ -24,6 +24,10 @@ Use the Supabase Project URL and publishable key. Never place a `service_role` o
 
 The root `.env.example` is a placeholder template only. Copy it to `.env.local` for local development and replace both placeholders. Never deploy `.env.local` or commit it.
 
+## Performance migration
+
+For faster dashboard and booking analytics, apply `supabase/migrations/20261111173000_dashboard_summary_performance.sql` once after checking the target database's migration history. It creates the `supplyos_dashboard_summary` RPC and supporting indexes. Until it is applied, the pages retain a narrower query fallback; the fast aggregated path requires this migration.
+
 ## Before production
 
 Run from the project root on a machine with npm registry access:

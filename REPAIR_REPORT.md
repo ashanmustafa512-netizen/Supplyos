@@ -45,3 +45,20 @@ On a machine with npm registry access, run `npm ci` and then `npm run check`. Fo
 ## Security note
 
 The uploaded archive contained a local `.env.local` file. It is deliberately excluded from the repaired ZIP and patch. Use the placeholder `.env.example` and enter the real Supabase Project URL and publishable key through your hosting provider's environment settings. Do not publish `.env.local` or a Supabase service-role/secret key.
+
+## Vercel TypeScript errors from the 2026-11-11 deployment screenshot
+
+The exact diagnostics shown in the user's Vercel log were addressed in this patch:
+
+1. `src/app/(app)/accounting/actions.ts`: `debit` and `credit` from `Array.find()` could be `undefined`. The code now normalizes an empty query result to an empty array, normalizes missing matches to `null`, and returns through the `never`-returning redirect helper inside an explicit null guard before accessing account IDs or names. The account lookup now uses inferred types instead of `any`.
+2. `src/app/(app)/dashboard/page.tsx`: the Supabase relationship type for `customers(name)` is an array (`{ name: any }[]`), so the old `.customers?.name` access was invalid. The dashboard now reads `.customers?.[0]?.name` and retains the existing `Customer` fallback for missing joined rows.
+
+### Verification for these two fixes
+
+- TypeScript parser on both changed source files: **passed**.
+- Strict standalone TypeScript narrowing test for the account lookup/null guard: **passed**.
+- Strict standalone TypeScript test for array relation access: **passed**.
+- Patch application dry-run against the extracted source: **passed**.
+- ZIP integrity: **passed**.
+- Full project `tsc`: **not completed**. The `node_modules` tree is incomplete and `npm ci --no-audit --no-fund` timed out while fetching packages. A global `tsc` run fails while loading missing third-party type definition packages (`estree`, `json-schema`, `json5`, `node`, `react`, and `react-dom`), before it can typecheck the application.
+- Vercel deployment: **not run from this environment**. Deploy the updated source and inspect the next build log for any subsequent diagnostics.

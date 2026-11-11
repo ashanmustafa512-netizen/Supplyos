@@ -15,9 +15,12 @@ export async function postManualJournal(f: FormData) {
   const { supabase } = await requireUser();
   const { data: selected, error: accountError } = await supabase.from("finance_accounts").select("id,code,name").eq("is_active", true).in("code", [debitCode, creditCode]);
   if (accountError) back("error", accountError.message);
-  const debit = selected?.find((a: any) => a.code === debitCode);
-  const credit = selected?.find((a: any) => a.code === creditCode);
-  if (!debit || !credit) back("error", "Choose active accounts from your chart of accounts.");
+  const accounts = selected ?? [];
+  const debit = accounts.find((account) => account.code === debitCode) ?? null;
+  const credit = accounts.find((account) => account.code === creditCode) ?? null;
+  if (debit === null || credit === null) {
+    return back("error", "Choose active accounts from your chart of accounts.");
+  }
   const amountRounded = Math.round((amount + Number.EPSILON) * 100) / 100;
   const { error } = await supabase.rpc("create_manual_journal", {
     p_date: s(f, "entry_date") || null,

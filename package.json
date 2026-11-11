@@ -6,9 +6,13 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint .",
-    "typecheck": "tsc --noEmit",
-    "check": "npm run typecheck && npm run lint && npm run build"
+    "typecheck": "next typegen && tsc --noEmit",
+    "lint": "eslint src next.config.ts",
+    "check": "npm run typecheck && npm run lint && npm run build",
+    "check:mobile-admin": "npm --prefix mobile-admin run typecheck",
+    "check:mobile-driver": "npm --prefix mobile-driver run typecheck",
+    "check:mobile": "npm run check:mobile-admin && npm run check:mobile-driver",
+    "check:all": "npm run check && npm run check:mobile"
   },
   "dependencies": {
     "@supabase/ssr": "^0.7.0",
@@ -25,5 +29,8 @@
     "eslint": "^9.17.0",
     "eslint-config-next": "^16.0.0",
     "typescript": "^5.7.2"
+  },
+  "engines": {
+    "node": "22.x"
   }
 }

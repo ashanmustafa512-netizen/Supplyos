@@ -15,9 +15,9 @@ if errorlevel 1 (
   pause
   exit /b 1
 )
-node -e "const [a,b]=process.versions.node.split('.').map(Number);process.exit(a>20||(a===20&&b>=9)?0:1)"
+node -e "process.exit(Number(process.versions.node.split('.')[0])===22?0:1)"
 if errorlevel 1 (
-  echo ERROR: This project needs Node.js 20.9 or newer. Node.js 22 LTS is recommended.
+  echo ERROR: This project is pinned to Node.js 22.x. Install Node.js 22 LTS.
   node -v
   pause
   exit /b 1
@@ -26,10 +26,10 @@ node -v
 if not exist "node_modules" (
   echo.
   echo First run: installing website dependencies from npm. Internet is required.
-  call npm install --no-audit --no-fund
+  call npm ci --no-audit --no-fund
   if errorlevel 1 (
     echo.
-    echo ERROR: Dependency installation failed. Check internet access and run npm install manually.
+    echo ERROR: Dependency installation failed. Check internet access and run npm ci manually.
     pause
     exit /b 1
   )

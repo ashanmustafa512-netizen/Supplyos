@@ -24,7 +24,7 @@ export async function updateSession(request: NextRequest): Promise<NextResponse>
       getAll() {
         return request.cookies.getAll();
       },
-      setAll(cookiesToSet, headers) {
+      setAll(cookiesToSet) {
         // Make refreshed cookies available to Server Components in this request.
         cookiesToSet.forEach(({ name, value }) => {
           request.cookies.set(name, value);
@@ -37,12 +37,6 @@ export async function updateSession(request: NextRequest): Promise<NextResponse>
           response.cookies.set(name, value, options);
         });
 
-        // Supabase may attach response headers (for example cache controls).
-        if (headers) {
-          for (const [name, value] of Object.entries(headers)) {
-            response.headers.set(name, value);
-          }
-        }
       },
     },
   });

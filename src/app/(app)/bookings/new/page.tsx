@@ -2,14 +2,13 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft, ClipboardCheck, ShieldCheck } from "lucide-react";
 import { createBooking, createShop } from "@/app/(app)/bookings/actions";
-import { getWorkspace } from "@/lib/server-auth";
+import { getWorkspace, requireUser } from "@/lib/server-auth";
 import { canCreateBookings } from "@/lib/access";
-import { requireUser } from "@/lib/server-auth";
 import { money } from "@/lib/format";
 
 export const metadata: Metadata = { title: "Create booking" };
 
-type Params = Promise<{ error?: string }>;
+type Params = Promise<{ error?: string; success?: string }>;
 
 export default async function NewBookingPage({ searchParams }: { searchParams: Params }) {
   const params = await searchParams;

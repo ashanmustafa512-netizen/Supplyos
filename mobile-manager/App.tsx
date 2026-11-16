@@ -17,7 +17,7 @@ export default function App() {
     } catch { return undefined; }
   }, []);
 
-  if (!source) return <SafeAreaView style={styles.center}><StatusBar style="light" /><Text style={styles.title}>SupplyOS Manager</Text><Text style={styles.message}>Set EXPO_PUBLIC_ADMIN_URL to your deployed HTTPS SupplyOS web app, then rebuild this APK.</Text></SafeAreaView>;
+  if (!source) return <SafeAreaView style={styles.center}><StatusBar style="light" /><Text style={styles.title}>SupplyOS Manager</Text><Text style={styles.message}>Set EXPO_PUBLIC_MANAGER_URL to your deployed HTTPS SupplyOS web app, then rebuild this APK.</Text></SafeAreaView>;
 
   return <SafeAreaView style={styles.root}>
     <StatusBar style="dark" />

@@ -15,7 +15,7 @@ export default async function BookingsPage({ searchParams }: { searchParams: Sea
   const { supabase, user } = await requireUser();
   const { membership } = await getWorkspace(supabase, user.id);
   const role = String(membership?.role ?? "").toLowerCase();
-  const isEmployee = role === "staff";
+  if (role === "accountant") {\n    const { redirect } = await import("next/navigation");\n    redirect("/accounting");\n  }\n  const isEmployee = role === "staff";
   const mayApprove = canApproveBookings(role);
   const mayComplete = canCompleteBookings(role);
   const monthParts = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Karachi", year: "numeric", month: "2-digit" }).formatToParts(new Date());
@@ -65,7 +65,7 @@ export default async function BookingsPage({ searchParams }: { searchParams: Sea
   const cancelledValue = Number(summary.cancelled_value ?? 0);
   return (
     <div className="page-stack">
-      <div className="page-heading-row"><div><div className="eyebrow">ORDER MANAGEMENT</div><h1>Bookings <span className="heading-count">{bookings.length}</span></h1><p>Review customer orders, protect inventory, and keep approvals moving.</p></div><div className="heading-actions"><Link href="/bookings/new" className="button button-primary"><Plus size={17}/> Create booking</Link></div></div>
+      <div className="page-heading-row"><div><div className="eyebrow">ORDER MANAGEMENT</div><h1>Bookings <span className="heading-count">{bookings.length}</span></h1><p>{isEmployee ? "Create orders during shop visits and review the bookings submitted from your account." : "Review customer orders, protect inventory, and keep approvals moving."}</p></div><div className="heading-actions">{(isEmployee || mayApprove || mayComplete) && <Link href="/bookings/new" className="button button-primary"><Plus size={17}/> Create booking</Link>}</div></div>
       {params.success && <div className="notice notice-success">{params.success}</div>}
       {params.error && <div className="notice notice-error">{params.error}</div>}
       {error && <div className="notice notice-error">Bookings could not be loaded: {error.message}</div>}

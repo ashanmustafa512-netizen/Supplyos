@@ -2,6 +2,7 @@ import { cache } from "react";
 import { redirect } from "next/navigation";
 import { isSupabaseConfigured } from "@/lib/env";
 import { createClient } from "@/lib/supabase/server";
+import { normalizeRole } from "@/lib/access";
 
 export const requireUser = cache(async function requireUser() {
   if (!isSupabaseConfigured) redirect("/setup");
@@ -45,3 +46,14 @@ export const getWorkspace = cache(async function getWorkspace(supabase: Awaited<
     .maybeSingle();
   return { organization, membership };
 });
+
+
+/** Enforce a workspace role inside server actions, not only in the navigation. */
+export async function requireWorkspaceRole(allowedRoles: readonly string[]) {
+  const { supabase, user } = await requireUser();
+  const { organization, membership } = await getWorkspace(supabase, user.id);
+  if (!membership || !allowedRoles.includes(normalizeRole(membership.role))) {
+    redirect("/dashboard");
+  }
+  return { supabase, user, organization, membership };
+}

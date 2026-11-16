@@ -2,7 +2,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getWorkspace, requireUser } from "@/lib/server-auth";
-import { canAccessAccounting } from "@/lib/access";
+import { canAccessAccounting, isOwnerOrAdmin } from "@/lib/access";
 const back=(key:"success"|"error",v:string):never=>redirect(`/accounting?${key}=${encodeURIComponent(v)}`);
 const s=(f:FormData,k:string)=>String(f.get(k)??"").trim();const n=(f:FormData,k:string)=>Number(f.get(k)??0);
 async function requireFinanceRole(){const {supabase,user}=await requireUser();const {membership}=await getWorkspace(supabase,user.id);if(!membership||!canAccessAccounting(membership.role))back("error","Your role cannot access company accounting.");return supabase;}
@@ -42,7 +42,9 @@ export async function saveFinancialGoals(f: FormData) {
   if (!Number.isFinite(revenueGoal) || revenueGoal < 0 || !Number.isFinite(expenseBudget) || expenseBudget < 0) {
     back("error", "Enter non-negative monthly revenue and expense targets.");
   }
-  const supabase = await requireFinanceRole();
+  const { supabase, user } = await requireUser();
+  const { membership } = await getWorkspace(supabase, user.id);
+  if (!membership || !isOwnerOrAdmin(membership.role)) back("error", "Only owners and admins can change company financial goals.");
   const { error } = await supabase.rpc("set_financial_goals", {
     p_monthly_revenue_goal: revenueGoal,
     p_monthly_expense_budget: expenseBudget,

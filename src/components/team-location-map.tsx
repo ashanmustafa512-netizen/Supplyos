@@ -89,6 +89,7 @@ export function TeamLocationMap({
   const [mapReady, setMapReady] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [lastRefresh, setLastRefresh] = useState<string | null>(null);
+  const [stoppingId, setStoppingId] = useState<string | null>(null);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -238,6 +239,24 @@ export function TeamLocationMap({
     window.setTimeout(() => map.invalidateSize(), 80);
   }, [locations, factory, mapReady]);
 
+  async function endTeamShift(person: TeamLocation) {
+    const confirmed = window.confirm(`End ${person.name}'s active work shift? This will stop their server location session.`);
+    if (!confirmed) return;
+    setStoppingId(person.id);
+    const supabase = createClient();
+    const { error } = await supabase.rpc("admin_stop_employee_location_shift", {
+      p_session_id: person.id,
+      p_reason: "owner_stopped",
+    });
+    if (error) {
+      setMapError(error.message);
+    } else {
+      setMapError("");
+      document.dispatchEvent(new Event("visibilitychange"));
+    }
+    setStoppingId(null);
+  }
+
   const liveCount = locations.filter(location => freshness(location) === "Live").length;
   const staleCount = locations.length - liveCount;
 
@@ -271,7 +290,7 @@ export function TeamLocationMap({
       <section className="panel">
         <div className="panel-heading"><div><h2>Active work shifts</h2><p>Last location receipt and geofence status for every active session.</p></div><span className="table-count">{locations.length} active</span></div>
         <div className="table-scroll">
-          <table className="data-table"><thead><tr><th>Team member</th><th>Role</th><th>Location status</th><th>Factory geofence</th><th>GPS accuracy</th><th>Last update</th></tr></thead>
+          <table className="data-table"><thead><tr><th>Team member</th><th>Role</th><th>Location status</th><th>Factory geofence</th><th>GPS accuracy</th><th>Last update</th><th>Action</th></tr></thead>
             <tbody>{locations.map(person => <tr key={person.id}>
               <td><strong>{person.name}</strong></td>
               <td>{person.role === "manager" ? "Manager" : "Employee"}</td>
@@ -279,8 +298,9 @@ export function TeamLocationMap({
               <td>{person.geofenceState.replaceAll("_", " ")}</td>
               <td>{person.accuracyM == null ? "—" : `${Math.round(person.accuracyM)} m`}</td>
               <td>{person.lastLocationAt ? new Date(person.lastLocationAt).toLocaleString() : "Waiting for first GPS fix"}</td>
+              <td><button type="button" className="button button-secondary button-small" onClick={() => void endTeamShift(person)} disabled={stoppingId === person.id}>{stoppingId === person.id ? "Ending…" : "End shift"}</button></td>
             </tr>)}
-            {!locations.length && <tr><td colSpan={6}>No active work-shift locations.</td></tr>}</tbody>
+            {!locations.length && <tr><td colSpan={7}>No active work-shift locations.</td></tr>}</tbody>
           </table>
         </div>
       </section>

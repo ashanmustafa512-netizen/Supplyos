@@ -15,11 +15,29 @@ export default async function BookingDetailPage({ params }: { params: Promise<{ 
   const { membership } = await getWorkspace(supabase, user.id);
   const role = normalizeRole(membership?.role);
   if (!membership || !["owner", "admin", "manager", "staff"].includes(role)) notFound();
-  const { data: booking, error } = await supabase.from("bookings").select("id, booking_no, booking_date, status, total_amount, total_cost, profit, score_snapshot, city, region, notes, created_at, approved_at, customers(name, customer_code, phone, credit_limit, credit_used, score), booking_items(quantity, unit_price, unit_cost, line_total, line_cost, products(name, sku, unit)), booking_events(id, action, details, created_at)").eq("id", id).maybeSingle();
-  if (error || !booking) notFound();
-  const customer = booking.customers as unknown as { name: string; customer_code: string; phone: string; credit_limit: number; credit_used: number; score: number } | null;
-  const items = (booking.booking_items ?? []) as unknown as { quantity: number; unit_price: number; unit_cost: number; line_total: number; line_cost: number; products: { name: string; sku: string; unit: string } | null }[];
-  const events = (booking.booking_events ?? []) as unknown as { id: string; action: string; details: Record<string, unknown>; created_at: string }[];
+  type BookingDetail = {
+    id: string; booking_no: string; booking_date: string; status: string; total_amount: number | string;
+    total_cost?: number | string; profit?: number | string; score_snapshot?: number;
+    city: string | null; region: string | null; notes: string | null; created_at: string;
+    customers: { name: string; customer_code: string; phone?: string; credit_limit?: number; credit_used?: number; score?: number } | null;
+    booking_items: { quantity: number; unit_price: number; unit_cost?: number; line_total: number; line_cost?: number; products: { name: string; sku: string; unit: string } | null }[];
+    booking_events: { id: string; action: string; details: Record<string, unknown>; created_at: string }[];
+  };
+  let booking: BookingDetail | null = null;
+  if (role === "staff") {
+    const { data, error } = await supabase.rpc("get_my_booking_detail", { p_booking_id: id });
+    if (error || !data) notFound();
+    booking = data as unknown as BookingDetail;
+  } else {
+    const { data, error } = await supabase.from("bookings")
+      .select("id, booking_no, booking_date, status, total_amount, total_cost, profit, score_snapshot, city, region, notes, created_at, approved_at, customers(name, customer_code, phone, credit_limit, credit_used, score), booking_items(quantity, unit_price, unit_cost, line_total, line_cost, products(name, sku, unit)), booking_events(id, action, details, created_at)")
+      .eq("id", id).maybeSingle();
+    if (error || !data) notFound();
+    booking = data as unknown as BookingDetail;
+  }
+  const customer = booking.customers;
+  const items = booking.booking_items ?? [];
+  const events = booking.booking_events ?? [];
   const statusLabel: Record<string, string> = { pending_approval: "Pending approval", approved: "Approved", cancelled: "Cancelled", rejected: "Rejected", completed: "Completed", remade: "Remade" };
   return <div className="page-stack narrow-page">
     <Link href="/bookings" className="back-link"><ArrowLeft size={16}/> Back to bookings</Link>

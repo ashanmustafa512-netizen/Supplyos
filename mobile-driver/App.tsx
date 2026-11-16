@@ -91,6 +91,8 @@ export default function App() {
       setSignedIn(false);
       setActiveShift(null);
       setTrackingReady(false);
+      await stopNativeLocationUpdates();
+      await AsyncStorage.removeItem(SHIFT_SESSION_KEY);
       setMessage("This is the Employee app. Please sign in with a staff account; managers should use the Manager app.");
       return;
     }

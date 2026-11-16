@@ -157,7 +157,7 @@ begin
     raise exception 'This employee booking list is only available to employee accounts.';
   end if;
 
-  select coalesce(jsonb_agg(to_jsonb(rows)), '[]'::jsonb)
+  select coalesce(jsonb_agg(to_jsonb(q)), '[]'::jsonb)
   into v_result
   from (
     select
@@ -186,7 +186,7 @@ begin
       and b.created_by = v_user
     order by b.created_at desc
     limit 500
-  ) rows;
+  ) q;
 
   return v_result;
 end;

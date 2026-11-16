@@ -17,7 +17,7 @@ type ShellProps = { children: React.ReactNode; email: string; workspaceName: str
 type NavItem = { label: string; href: string; icon: LucideIcon; section: string; allowedRoles: string[] };
 
 const navItems: NavItem[] = [
-  { label: "Overview", href: "/dashboard", icon: LayoutDashboard, section: "WORKSPACE", allowedRoles: ["owner", "admin", "manager", "staff", "accountant"] },
+  { label: "Overview", href: "/dashboard", icon: LayoutDashboard, section: "WORKSPACE", allowedRoles: ["owner", "admin", "manager", "staff"] },
   { label: "Booking approvals", href: "/bookings", icon: ClipboardCheck, section: "ORDERS", allowedRoles: ["owner", "admin"] },
   { label: "Bookings", href: "/bookings", icon: ClipboardCheck, section: "ORDERS", allowedRoles: ["manager"] },
   { label: "My bookings", href: "/bookings", icon: ClipboardCheck, section: "ORDERS", allowedRoles: ["staff"] },
@@ -25,7 +25,7 @@ const navItems: NavItem[] = [
   { label: "Team live location", href: "/team-location", icon: Activity, section: "TEAM", allowedRoles: ["owner", "admin"] },
   { label: "Stock & warehouse", href: "/inventory", icon: Boxes, section: "OPERATIONS", allowedRoles: ["owner", "admin", "manager"] },
   { label: "Accounting", href: "/accounting", icon: Calculator, section: "BUSINESS", allowedRoles: ["owner", "admin"] },
-  { label: "Payroll", href: "/payroll", icon: Wallet, section: "BUSINESS", allowedRoles: ["owner", "admin", "accountant"] },
+  { label: "Payroll", href: "/payroll", icon: Wallet, section: "BUSINESS", allowedRoles: ["owner", "admin"] },
   { label: "Sales & recovery", href: "/sales", icon: CreditCard, section: "BUSINESS", allowedRoles: ["owner", "admin", "manager"] },
 ];
 

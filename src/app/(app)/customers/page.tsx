@@ -2,14 +2,16 @@ import type { Metadata } from "next";
 import { ArrowUpRight, CircleHelp, Plus, ShieldCheck, Users } from "lucide-react";
 import { createCustomer, updateCustomerRules } from "@/app/(app)/customers/actions";
 import { requireUser } from "@/lib/server-auth";
+import { redirect } from "next/navigation";
 import { money } from "@/lib/format";
 
 export const metadata: Metadata = { title: "Customers & credit limits" };
 type Params = Promise<{ success?: string; error?: string }>;
 
 export default async function CustomersPage({ searchParams }: { searchParams: Params }) {
-  const params = await searchParams;
-  const { supabase } = await requireUser();
+  await searchParams;
+  await requireUser();
+  redirect("/bookings");
   const { data: customers, error } = await supabase.from("customers").select("id, customer_code, name, city, region, phone, credit_limit, credit_used, score, status, created_at").order("name").limit(500);
   const rows = customers ?? [];
   const creditLimit = rows.reduce((sum, c) => sum + Number(c.credit_limit ?? 0), 0);

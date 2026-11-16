@@ -16,6 +16,11 @@
       "adaptiveIcon": {
         "backgroundColor": "#0B1220"
       }
+    },
+    "ios": {
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "SupplyOS shares your location with the factory owner during your active work shift."
+      }
     }
   }
 }

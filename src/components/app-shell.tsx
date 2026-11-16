@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { ThemeControl } from "@/components/theme-control";
+import { ManagerShiftLocation } from "@/components/manager-shift-location";
 import { normalizeRole } from "@/lib/access";
 
 type ShellProps = { children: React.ReactNode; email: string; workspaceName: string; role: string };
@@ -67,7 +68,7 @@ export function AppShell({ children, email, workspaceName, role }: ShellProps) {
       </aside>
       <div className="app-main">
         <header className="topbar"><div className="topbar-left"><button className="mobile-menu icon-button" aria-label="Open navigation" onClick={() => setMobileOpen(true)}><Menu size={19}/></button><div className="breadcrumbs"><span>Workspace</span><span className="breadcrumb-slash">/</span><strong>{navItems.find(item => item.href === pathname && item.allowedRoles.includes(normalizedRole))?.label || (pathname.split("/").filter(Boolean).at(-1) || "Overview").replace(/-/g, " ").replace(/\b\w/g, c => c.toUpperCase())}</strong></div></div><div className="topbar-right"><ThemeControl/><div className="live-status"><span className="health-dot"/> All systems normal</div><div className="notification-wrap"><button className="icon-button notification-button" aria-label="Notifications" aria-expanded={notificationsOpen} onClick={() => setNotificationsOpen(!notificationsOpen)}><Bell size={18}/><i/></button>{notificationsOpen && <div className="notification-popover"><strong>Workspace notifications</strong><p>Pending booking approvals and stock alerts are shown in <Link href="/dashboard" onClick={() => setNotificationsOpen(false)}>Action required</Link>.</p><button type="button" onClick={() => setNotificationsOpen(false)}>Close</button></div>}</div><div className="topbar-divider"/><div className="topbar-org"><div className="mini-org-mark"><Command size={15}/></div><span>{workspaceName || "My Workspace"}</span></div></div></header>
-        <main className="page-content">{children}</main>
+        <main className="page-content">{normalizedRole === "manager" && <ManagerShiftLocation/>}{children}</main>
         <footer className="app-footer"><span>SupplyOS <span className="footer-dot">·</span> Factory Operations</span><span>Built to keep your supply chain moving</span></footer>
       </div>
     </div>

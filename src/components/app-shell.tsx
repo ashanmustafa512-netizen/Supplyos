@@ -6,7 +6,7 @@ import { useState } from "react";
 import {
   Activity, Bell, Boxes, Building2, Calculator, ChevronDown, ChevronLeft,
   ClipboardCheck, Command, CreditCard, Factory, LayoutDashboard, LogOut,
-  Menu, Plus, Users, Wallet, type LucideIcon,
+  Menu, Plus, Wallet, type LucideIcon,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { ThemeControl } from "@/components/theme-control";
@@ -22,11 +22,11 @@ const navItems: NavItem[] = [
   { label: "Bookings", href: "/bookings", icon: ClipboardCheck, section: "ORDERS", allowedRoles: ["manager"] },
   { label: "My bookings", href: "/bookings", icon: ClipboardCheck, section: "ORDERS", allowedRoles: ["staff"] },
   { label: "New booking", href: "/bookings/new", icon: Plus, section: "ORDERS", allowedRoles: ["owner", "admin", "manager", "staff"] },
-  { label: "Team live location", href: "/team-location", icon: Activity, section: "TEAM", allowedRoles: ["owner", "admin", "manager"] },
+  { label: "Team live location", href: "/team-location", icon: Activity, section: "TEAM", allowedRoles: ["owner", "admin"] },
   { label: "Stock & warehouse", href: "/inventory", icon: Boxes, section: "OPERATIONS", allowedRoles: ["owner", "admin", "manager"] },
-  { label: "Accounting", href: "/accounting", icon: Calculator, section: "BUSINESS", allowedRoles: ["owner", "admin", "accountant"] },
+  { label: "Accounting", href: "/accounting", icon: Calculator, section: "BUSINESS", allowedRoles: ["owner", "admin"] },
   { label: "Payroll", href: "/payroll", icon: Wallet, section: "BUSINESS", allowedRoles: ["owner", "admin", "accountant"] },
-  { label: "Sales & recovery", href: "/sales", icon: CreditCard, section: "BUSINESS", allowedRoles: ["owner", "admin", "manager", "accountant"] },
+  { label: "Sales & recovery", href: "/sales", icon: CreditCard, section: "BUSINESS", allowedRoles: ["owner", "admin", "manager"] },
 ];
 
 export function AppShell({ children, email, workspaceName, role }: ShellProps) {

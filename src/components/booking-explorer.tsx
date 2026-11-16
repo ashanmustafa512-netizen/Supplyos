@@ -13,11 +13,11 @@ export type BookingRow = {
   booking_date: string;
   status: string;
   total_amount: number | string;
-  total_cost: number | string;
-  profit: number | string;
-  score_snapshot: number;
-  city: string;
-  region: string;
+  total_cost?: number | string;
+  profit?: number | string;
+  score_snapshot?: number;
+  city: string | null;
+  region: string | null;
   notes: string;
   created_at: string;
   customers: { name: string; customer_code: string } | null;
@@ -53,10 +53,10 @@ export function BookingExplorer({ bookings, role }: { bookings: BookingRow[]; ro
     tab.key,
     tab.key === "all" ? rows.length : rows.filter(booking => booking.status === tab.key).length,
   ])), [rows]);
-  const regions = useMemo(() => [...new Set(rows.map(booking => booking.region.trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b)), [rows]);
+  const regions = useMemo(() => [...new Set(rows.map(booking => (booking.region ?? "").trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b)), [rows]);
   const cities = useMemo(() => [...new Set(rows
-    .filter(booking => region === "all" || booking.region.trim() === region)
-    .map(booking => booking.city.trim())
+    .filter(booking => region === "all" || (booking.region ?? "").trim() === region)
+    .map(booking => (booking.city ?? "").trim())
     .filter(Boolean))].sort((a, b) => a.localeCompare(b)), [rows, region]);
   const filtered = useMemo(() => rows.filter(booking => {
     const matchesStatus = status === "all" || booking.status === status;
@@ -64,7 +64,7 @@ export function BookingExplorer({ bookings, role }: { bookings: BookingRow[]; ro
     return matchesStatus
       && haystack.includes(search.toLowerCase().trim())
       && (region === "all" || booking.region.trim() === region)
-      && (city === "all" || booking.city.trim() === city);
+      && (city === "all" || (booking.city ?? "").trim() === city);
   }), [rows, city, region, search, status]);
 
   const visiblePending = filtered.filter(booking => booking.status === "pending_approval");

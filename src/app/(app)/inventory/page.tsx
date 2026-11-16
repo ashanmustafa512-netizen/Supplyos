@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
 import { AlertTriangle, Boxes, ClipboardList, PackagePlus, Plus, Truck, Warehouse, Wallet } from "lucide-react";
 import { adjustStock, createProduct, createPurchaseOrder, createSupplier, createWarehouse, receivePurchaseOrder, updateProduct } from "@/app/(app)/inventory/actions";
-import { requireUser } from "@/lib/server-auth";
+import { requireWorkspaceRole } from "@/lib/server-auth";
 import { money, compactNumber, dateLabel } from "@/lib/format";
 export const metadata:Metadata={title:"Stock & warehouse"};type Params=Promise<{success?:string;error?:string}>;
 const Field=({label,name,type="text",required=false,defaultValue,step,min,max}:{label:string;name:string;type?:string;required?:boolean;defaultValue?:string|number;step?:string;min?:string;max?:string})=><label className="field-label">{label}<input name={name} type={type} required={required} defaultValue={defaultValue} step={step} min={min} max={max}/></label>;
 export default async function InventoryPage({searchParams}:{searchParams:Params}){
- const p=await searchParams;const {supabase}=await requireUser();const [pr,sr,wr,por,mr]=await Promise.all([
+ const p=await searchParams;const {supabase}=await requireWorkspaceRole(["owner","admin","manager"]);const [pr,sr,wr,por,mr]=await Promise.all([
   supabase.from("products").select("id,sku,name,unit,category,barcode,unit_cost,unit_price,stock_on_hand,stock_reserved,unit_weight_kg,raw_material_cost,direct_labor_cost,production_overhead,production_cost,reorder_level,is_active,default_supplier_id").order("name").limit(500),
   supabase.from("suppliers").select("id,supplier_code,name,city,phone,is_active").eq("is_active",true).order("name"),
   supabase.from("warehouses").select("id,code,name,city,is_default,is_active").eq("is_active",true).order("name"),

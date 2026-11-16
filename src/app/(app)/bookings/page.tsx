@@ -15,7 +15,11 @@ export default async function BookingsPage({ searchParams }: { searchParams: Sea
   const { supabase, user } = await requireUser();
   const { membership } = await getWorkspace(supabase, user.id);
   const role = String(membership?.role ?? "").toLowerCase();
-  if (role === "accountant") {\n    const { redirect } = await import("next/navigation");\n    redirect("/accounting");\n  }\n  const isEmployee = role === "staff";
+  if (role === "accountant") {
+    const { redirect } = await import("next/navigation");
+    redirect("/accounting");
+  }
+  const isEmployee = role === "staff";
   const mayApprove = canApproveBookings(role);
   const mayComplete = canCompleteBookings(role);
   const monthParts = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Karachi", year: "numeric", month: "2-digit" }).formatToParts(new Date());

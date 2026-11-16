@@ -36,6 +36,17 @@ using (
   )
 );
 
+alter table public.employee_location_sessions
+  add column if not exists role_snapshot text not null default 'staff'
+  check (role_snapshot in ('staff', 'manager'));
+
+update public.employee_location_sessions s
+set role_snapshot = m.role
+from public.memberships m
+where m.organization_id = s.organization_id
+  and m.user_id = s.user_id
+  and m.role in ('staff', 'manager');
+
 create or replace function public.create_booking(
   p_customer_id uuid,
   p_product_id uuid,
@@ -308,6 +319,7 @@ as $function$
 declare
   v_user uuid := auth.uid();
   v_org uuid;
+  v_role text;
   v_name text;
   v_session uuid;
 begin
@@ -320,7 +332,7 @@ begin
     raise exception 'Explicit employee location consent is required.';
   end if;
 
-  select m.organization_id into v_org
+  select m.organization_id, m.role into v_org, v_role
   from public.memberships m
   where m.user_id = v_user and m.role in ('staff', 'manager')
   order by m.created_at asc
@@ -345,9 +357,9 @@ begin
   end if;
 
   insert into public.employee_location_sessions (
-    organization_id, user_id, employee_name, consent_version
+    organization_id, user_id, employee_name, consent_version, role_snapshot
   )
-  values (v_org, v_user, v_name, p_consent_version)
+  values (v_org, v_user, v_name, p_consent_version, v_role)
   returning id into v_session;
 
   return jsonb_build_object(

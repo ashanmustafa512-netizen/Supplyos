@@ -139,3 +139,28 @@ export async function bulkApproveBookingsInline(rawIds: string[]): Promise<BulkA
   }
   return { approvedIds, failures };
 }
+
+
+export async function createShop(formData: FormData) {
+  const customerCode = String(formData.get("customer_code") ?? "").trim().toUpperCase();
+  const name = String(formData.get("name") ?? "").trim();
+  const city = String(formData.get("city") ?? "").trim();
+  const region = String(formData.get("region") ?? "").trim();
+  const phone = String(formData.get("phone") ?? "").trim();
+  const creditLimit = Number(formData.get("credit_limit") ?? 0);
+  const score = Number(formData.get("score") ?? 75);
+  if (!customerCode || !name || !Number.isFinite(creditLimit) || creditLimit < 0 || !Number.isInteger(score) || score < 0 || score > 100) {
+    redirect(withMessage("/bookings/new", "error", "Enter a shop code, name, valid credit limit and score from 0–100."));
+  }
+  const { supabase, user } = await requireUser();
+  const { membership } = await getWorkspace(supabase, user.id);
+  if (!membership || !canCreateBookings(membership.role)) redirect(withMessage("/bookings", "error", "Your role cannot create shop records."));
+  const { error } = await supabase.from("customers").insert({
+    organization_id: membership.organization_id, customer_code: customerCode, name,
+    city, region, phone, credit_limit: creditLimit, score,
+  });
+  if (error) redirect(withMessage("/bookings/new", "error", error.code === "23505" ? "That shop code already exists." : error.message));
+  revalidatePath("/bookings/new");
+  revalidatePath("/bookings");
+  redirect(withMessage("/bookings/new", "success", "Shop saved. Select it in the booking form."));
+}

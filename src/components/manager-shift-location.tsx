@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { MapPinned, ShieldCheck } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
@@ -9,7 +9,7 @@ type ShiftSession = { id: string; started_at: string };
 const CONSENT_VERSION = "supplyos-manager-work-shift-location-consent-v1";
 
 export function ManagerShiftLocation() {
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
   const [session, setSession] = useState<ShiftSession | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -17,6 +17,7 @@ export function ManagerShiftLocation() {
   const [lastUpdate, setLastUpdate] = useState<string | null>(null);
   const watchId = useRef<number | null>(null);
   const sessionIdRef = useRef<string | null>(null);
+  const lastSentAt = useRef(0);
 
   const stopWatching = useCallback(() => {
     if (watchId.current !== null && typeof navigator !== "undefined" && navigator.geolocation) {
@@ -49,7 +50,12 @@ export function ManagerShiftLocation() {
     }
     stopWatching();
     watchId.current = navigator.geolocation.watchPosition(
-      position => { void recordPosition(sessionId, position); },
+      position => {
+        const now = Date.now();
+        if (now - lastSentAt.current < 15000) return;
+        lastSentAt.current = now;
+        void recordPosition(sessionId, position);
+      },
       error => {
         const reason = error.code === error.PERMISSION_DENIED
           ? "Location permission was denied. Enable location access for SupplyOS to continue."
@@ -130,6 +136,7 @@ export function ManagerShiftLocation() {
       sessionIdRef.current = result.session_id;
       setSession({ id: result.session_id, started_at: result.started_at });
       await recordPosition(result.session_id, position);
+      lastSentAt.current = Date.now();
       beginWatching(result.session_id);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Could not start your work-shift location.");
@@ -154,6 +161,7 @@ export function ManagerShiftLocation() {
     }
     setSession(null);
     sessionIdRef.current = null;
+    lastSentAt.current = 0;
     setLastUpdate(null);
     setMessage("Work shift ended. No new manager location updates will be sent.");
     setBusy(false);

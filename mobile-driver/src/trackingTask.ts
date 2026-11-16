@@ -46,10 +46,8 @@ export async function beginNativeLocationUpdates() {
     throw new Error("Allow background location in Android settings so your owner can see your location while the screen is locked.");
   }
 
-  const already = await TaskManager.isTaskRegisteredAsync(LOCATION_TASK);
-  if (already && await Location.hasStartedLocationUpdatesAsync(LOCATION_TASK)) {
-    await Location.stopLocationUpdatesAsync(LOCATION_TASK);
-  }
+  // Do not restart the native task when the app resumes or refreshes.
+  if (await Location.hasStartedLocationUpdatesAsync(LOCATION_TASK)) return;
 
   await Location.startLocationUpdatesAsync(LOCATION_TASK, {
     accuracy: Location.Accuracy.High,

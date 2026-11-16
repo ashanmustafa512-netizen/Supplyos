@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { CheckCircle2, Coins, Percent, Plus, SlidersHorizontal, TrendingDown } from "lucide-react";
 import { BookingExplorer, type BookingRow } from "@/components/booking-explorer";
 import { getWorkspace, requireUser } from "@/lib/server-auth";
-import { canCreateBookings, canViewAllBookings, normalizeRole } from "@/lib/access";
+import { canCreateBookings, normalizeRole } from "@/lib/access";
 import { money } from "@/lib/format";
 
 export const metadata: Metadata = { title: "Bookings" };
@@ -29,7 +29,7 @@ export default async function BookingsPage({ searchParams }: { searchParams: Sea
       .order("created_at", { ascending: false })
       .limit(500),
     isEmployee
-      ? Promise.resolve({ data: null, error: { message: "Employee dashboard does not expose company totals." } })
+      ? Promise.resolve({ data: null, error: null })
       : supabase.rpc("supplyos_dashboard_summary", { p_month_start: monthStart, p_today: today }),
   ]);
 
@@ -55,6 +55,7 @@ export default async function BookingsPage({ searchParams }: { searchParams: Sea
       cancelled_value: cancelledRows.reduce((sum, row) => sum + Number(row.total_amount ?? 0), 0),
     };
   }
+  summary ??= {};
   const monthCount = Number(summary.order_count ?? 0);
   const approvalRate = monthCount ? Math.round(Number(summary.approved_count ?? 0) / monthCount * 100) : 0;
   const averageOrder = monthCount ? Number(summary.total_value ?? 0) / monthCount : 0;

@@ -35,6 +35,7 @@ export default async function BookingDetailPage({ params }: { params: Promise<{ 
     if (error || !data) notFound();
     booking = data as unknown as BookingDetail;
   }
+  if (!booking) notFound();
   const customer = booking.customers;
   const items = booking.booking_items ?? [];
   const events = booking.booking_events ?? [];

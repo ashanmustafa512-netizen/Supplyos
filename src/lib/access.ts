@@ -5,19 +5,19 @@ export function normalizeRole(role: unknown): string {
 
 const ownerRoles = new Set(["owner", "admin"]);
 const managerRoles = new Set(["owner", "admin", "manager"]);
-const financeRoles = new Set(["owner", "admin", "accountant"]);
-const salesRecoveryRoles = new Set(["owner", "admin", "manager", "accountant"]);
+const bookingRoles = new Set(["owner", "admin", "manager", "staff"]);
+const salesRecoveryRoles = new Set(["owner", "admin", "manager"]);
 
 export function isOwnerRole(role: unknown): boolean {
   return ownerRoles.has(normalizeRole(role));
 }
 
 export function canAccessAccounting(role: unknown): boolean {
-  return financeRoles.has(normalizeRole(role));
+  return isOwnerRole(role);
 }
 
 export function canAccessPayroll(role: unknown): boolean {
-  return financeRoles.has(normalizeRole(role));
+  return isOwnerRole(role);
 }
 
 export function canAccessSalesRecovery(role: unknown): boolean {
@@ -25,10 +25,30 @@ export function canAccessSalesRecovery(role: unknown): boolean {
 }
 
 export function canViewTeamLocations(role: unknown): boolean {
+  return isOwnerRole(role);
+}
+
+export function canCreateBookings(role: unknown): boolean {
+  return bookingRoles.has(normalizeRole(role));
+}
+
+export function canViewAllBookings(role: unknown): boolean {
   return managerRoles.has(normalizeRole(role));
 }
 
-/** Legacy name retained for older call sites while fleet navigation is retired. */
+export function canApproveBookings(role: unknown): boolean {
+  return isOwnerRole(role);
+}
+
+export function canCompleteBookings(role: unknown): boolean {
+  return managerRoles.has(normalizeRole(role));
+}
+
+export function canCancelBookings(role: unknown): boolean {
+  return bookingRoles.has(normalizeRole(role));
+}
+
+/** Legacy name retained while the mixed fleet routes screen is retired. */
 export function canManageFleetTracking(role: unknown): boolean {
   return canViewTeamLocations(role);
 }

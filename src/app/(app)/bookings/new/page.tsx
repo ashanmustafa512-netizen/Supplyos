@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft, ClipboardCheck, ShieldCheck } from "lucide-react";
-import { createBooking } from "@/app/(app)/bookings/actions";
+import { createBooking, createShop } from "@/app/(app)/bookings/actions";
+import { getWorkspace } from "@/lib/server-auth";
+import { canCreateBookings } from "@/lib/access";
 import { requireUser } from "@/lib/server-auth";
 import { money } from "@/lib/format";
 
@@ -11,7 +13,12 @@ type Params = Promise<{ error?: string }>;
 
 export default async function NewBookingPage({ searchParams }: { searchParams: Params }) {
   const params = await searchParams;
-  const { supabase } = await requireUser();
+  const { supabase, user } = await requireUser();
+  const { membership } = await getWorkspace(supabase, user.id);
+  if (!membership || !canCreateBookings(membership.role)) {
+    const { redirect } = await import("next/navigation");
+    redirect("/bookings");
+  }
   const [{ data: customers }, { data: products }] = await Promise.all([
     supabase.from("customers").select("id, customer_code, name, city, region, credit_limit, credit_used, score").eq("status", "active").order("name"),
     supabase.from("products").select("id, sku, name, unit, unit_price, unit_cost, stock_on_hand, stock_reserved").eq("is_active", true).order("name"),
@@ -20,8 +27,8 @@ export default async function NewBookingPage({ searchParams }: { searchParams: P
     <div className="page-stack narrow-page">
       <Link href="/bookings" className="back-link"><ArrowLeft size={16}/> Back to bookings</Link>
       <div className="page-heading-row"><div><div className="eyebrow">ORDER MANAGEMENT / NEW</div><h1>Create a booking</h1><p>Enter a customer order. It will enter the approval queue until approved.</p></div><span className="draft-label"><i/> New booking</span></div>
-      {params.error && <div className="notice notice-error">{params.error}</div>}
-      {(!customers?.length || !products?.length) ? <section className="panel onboarding-panel"><div className="onboarding-icon"><ClipboardCheck size={22}/></div><h2>Set up the basics first</h2><p>Bookings use real customer and product records to calculate selling value, cost, expected profit, stock availability, and credit checks.</p><div className="onboarding-links">{!customers?.length && <Link href="/customers" className="button button-primary">Add a customer</Link>}{!products?.length && <Link href="/inventory" className="button button-primary">Add a product</Link>}</div></section> : <form action={createBooking} className="panel booking-create-form">
+      {params.error && <div className="notice notice-error">{params.error}</div>}\n      {params.success && <div className="notice notice-success">{params.success}</div>}
+      {(!customers?.length || !products?.length) ? <section className="panel onboarding-panel"><div className="onboarding-icon"><ClipboardCheck size={22}/></div><h2>Set up the basics first</h2><p>Bookings use real customer and product records to calculate selling value, cost, expected profit, stock availability, and credit checks.</p><div className="onboarding-links">{!products?.length && <Link href="/inventory" className="button button-primary">Add a product</Link>}</div></section> : <form action={createBooking} className="panel booking-create-form">
         <div className="form-section-heading"><div><span className="form-section-number">01</span><div><h2>Customer & delivery</h2><p>Choose the account receiving this order.</p></div></div></div>
         <div className="form-grid"><label className="field-label span-2">Customer account<select name="customer_id" required defaultValue=""><option value="" disabled>Select a customer…</option>{customers!.map(c => <option key={c.id} value={c.id}>{c.customer_code} — {c.name} ({[c.city, c.region].filter(Boolean).join(", ") || "Location not set"})</option>)}</select></label></div>
         <div className="form-divider"/>

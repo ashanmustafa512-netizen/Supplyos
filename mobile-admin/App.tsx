@@ -3,7 +3,7 @@ import { ActivityIndicator, SafeAreaView, StyleSheet, Text, View } from "react-n
 import { StatusBar } from "expo-status-bar";
 import { WebView } from "react-native-webview";
 
-const ADMIN_URL = process.env.EXPO_PUBLIC_ADMIN_URL;
+const ADMIN_URL = process.env.EXPO_PUBLIC_OWNER_URL ?? process.env.EXPO_PUBLIC_ADMIN_URL;
 
 export default function App() {
   const [loading, setLoading] = useState(true);
@@ -17,7 +17,7 @@ export default function App() {
     } catch { return undefined; }
   }, []);
 
-  if (!source) return <SafeAreaView style={styles.center}><StatusBar style="light" /><Text style={styles.title}>SupplyOS Admin & Dispatch</Text><Text style={styles.message}>Set EXPO_PUBLIC_ADMIN_URL to your deployed HTTPS SupplyOS web app, then rebuild this APK.</Text></SafeAreaView>;
+  if (!source) return <SafeAreaView style={styles.center}><StatusBar style="light" /><Text style={styles.title}>SupplyOS Owner</Text><Text style={styles.message}>Set EXPO_PUBLIC_ADMIN_URL to your deployed HTTPS SupplyOS web app, then rebuild this APK.</Text></SafeAreaView>;
 
   return <SafeAreaView style={styles.root}>
     <StatusBar style="dark" />

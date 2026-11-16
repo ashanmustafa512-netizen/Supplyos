@@ -686,6 +686,11 @@ using (organization_id in (
 
 -- Narrow the manager's privileged route access too: team location viewing is
 -- owner/admin-only, and the application no longer exposes dispatch/truck pages.
+revoke all on function public.create_booking(uuid, uuid, numeric, text) from public, anon;
+grant execute on function public.create_booking(uuid, uuid, numeric, text) to authenticated;
+revoke all on function public.booking_action(uuid, text) from public, anon;
+grant execute on function public.booking_action(uuid, text) to authenticated;
+
 revoke all on function public.start_employee_location_shift(text) from public, anon;
 grant execute on function public.start_employee_location_shift(text) to authenticated;
 revoke all on function public.admin_stop_employee_location_shift(uuid, text) from public, anon;

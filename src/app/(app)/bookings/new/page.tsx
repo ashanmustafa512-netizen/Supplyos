@@ -7,7 +7,7 @@ import { money } from "@/lib/format";
 
 export const metadata: Metadata = { title: "Create booking" };
 
-type Params = Promise<{ error?: string }>;
+type Params = Promise<{ success?: string; error?: string }>;
 
 export default async function NewBookingPage({ searchParams }: { searchParams: Params }) {
   const params = await searchParams;
@@ -24,9 +24,11 @@ export default async function NewBookingPage({ searchParams }: { searchParams: P
     <div className="page-stack narrow-page">
       <Link href="/bookings" className="back-link"><ArrowLeft size={16}/> Back to bookings</Link>
       <div className="page-heading-row"><div><div className="eyebrow">ORDER MANAGEMENT / NEW</div><h1>Create a booking</h1><p>Enter a customer order. It will enter the approval queue until approved.</p></div><span className="draft-label"><i/> New booking</span></div>
+      {params.success && <div className="notice notice-success">{params.success}</div>}
       {params.error && <div className="notice notice-error">{params.error}</div>}
       {catalogError && <div className="notice notice-error">Booking catalogue could not be loaded: {catalogError.message}</div>}
-      {(!customers.length || !products.length) ? <section className="panel onboarding-panel"><div className="onboarding-icon"><ClipboardCheck size={22}/></div><h2>Set up the basics first</h2><p>Bookings need an existing shop and product. Ask the owner or manager to add missing records before submitting an order.</p><div className="onboarding-links">{!customers.length && <span className="muted">Ask the owner or manager to add a shop first.</span>}{!products.length && (isEmployee ? <span className="muted">Ask the owner or manager to add a product first.</span> : <Link href="/inventory" className="button button-primary">Add a product</Link>)}</div></section> : <form action={createBooking} className="panel booking-create-form">
+      {!isEmployee && <div className="heading-actions"><Link href="/bookings/new-shop" className="button button-secondary"><ClipboardCheck size={16}/> Add shop</Link></div>}
+      {(!customers.length || !products.length) ? <section className="panel onboarding-panel"><div className="onboarding-icon"><ClipboardCheck size={22}/></div><h2>Set up the basics first</h2><p>Bookings need an existing shop and product. Ask the owner or manager to add missing records before submitting an order.</p><div className="onboarding-links">{!customers.length && (isEmployee ? <span className="muted">Ask the owner or manager to add a shop first.</span> : <Link href="/bookings/new-shop" className="button button-primary">Add shop</Link>)}{!products.length && (isEmployee ? <span className="muted">Ask the owner or manager to add a product first.</span> : <Link href="/inventory" className="button button-primary">Add a product</Link>)}</div></section> : <form action={createBooking} className="panel booking-create-form">
         <div className="form-section-heading"><div><span className="form-section-number">01</span><div><h2>Customer & delivery</h2><p>Choose the account receiving this order.</p></div></div></div>
         <div className="form-grid"><label className="field-label span-2">Customer account<select name="customer_id" required defaultValue=""><option value="" disabled>Select a customer…</option>{customers.map(c => <option key={c.id} value={c.id}>{c.customer_code} — {c.name} ({[c.city, c.region].filter(Boolean).join(", ") || "Location not set"})</option>)}</select></label></div>
         <div className="form-divider"/>

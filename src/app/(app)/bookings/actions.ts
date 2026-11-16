@@ -2,7 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { requireUser } from "@/lib/server-auth";
+import { getWorkspace, requireUser } from "@/lib/server-auth";
+import { canCreateBookings } from "@/lib/access";
 
 function withMessage(path: string, key: "error" | "success", value: string) {
   return `${path}?${key}=${encodeURIComponent(value)}`;
@@ -25,7 +26,9 @@ export async function createBooking(formData: FormData) {
     redirect(withMessage("/bookings/new", "error", "Select a customer and product, and enter a quantity greater than zero."));
   }
 
-  const { supabase } = await requireUser();
+  const { supabase, user } = await requireUser();
+  const { membership } = await getWorkspace(supabase, user.id);
+  if (!membership || !canCreateBookings(membership.role)) redirect(withMessage("/bookings", "error", "Your role cannot create bookings."));
   const { data: bookingId, error } = await supabase.rpc("create_booking", {
     p_customer_id: customerId,
     p_product_id: productId,

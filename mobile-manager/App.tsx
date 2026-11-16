@@ -23,7 +23,7 @@ export default function App() {
     <StatusBar style="dark" />
     {loading && !failed && <View style={styles.loading}><ActivityIndicator size="large" /><Text style={styles.loadingText}>Opening SupplyOS…</Text></View>}
     {failed ? <View style={styles.center}><Text style={styles.title}>Unable to open SupplyOS</Text><Text style={styles.message}>Check the internet connection and deployed website URL, then reopen the app.</Text></View> :
-      <WebView source={source} onLoadStart={() => { setLoading(true); setFailed(false); }} onLoadEnd={() => setLoading(false)} onError={() => { setLoading(false); setFailed(true); }} onHttpError={(event) => { if (event.nativeEvent.statusCode >= 500) setFailed(true); }} javaScriptEnabled domStorageEnabled sharedCookiesEnabled thirdPartyCookiesEnabled setSupportMultipleWindows={false} allowsBackForwardNavigationGestures originWhitelist={["https://*", "http://localhost/*"]} startInLoadingState style={styles.web} />}
+      <WebView source={source} onLoadStart={() => { setLoading(true); setFailed(false); }} onLoadEnd={() => setLoading(false)} onError={() => { setLoading(false); setFailed(true); }} onHttpError={(event) => { if (event.nativeEvent.statusCode >= 500) setFailed(true); }} javaScriptEnabled domStorageEnabled geolocationEnabled sharedCookiesEnabled thirdPartyCookiesEnabled setSupportMultipleWindows={false} allowsBackForwardNavigationGestures originWhitelist={["https://*", "http://localhost/*"]} startInLoadingState style={styles.web} />}
   </SafeAreaView>;
 }
 

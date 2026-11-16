@@ -31,7 +31,7 @@ export default async function TeamLocationPage() {
   const { data: memberships } = userIds.length
     ? await supabase.from("memberships").select("user_id,role").eq("organization_id", organization.id).in("user_id", userIds)
     : { data: [] as Array<{user_id:string;role:string}> };
-  const roleByUser = new Map((memberships ?? []).map(item => [item.user_id, item.role]));
+  const roleByUser = new Map<string, string>((memberships ?? []).map(item => [item.user_id, item.role] as const));
 
   const locations: TeamLocation[] = rawSessions.map(row => ({
     id: String(row.id),

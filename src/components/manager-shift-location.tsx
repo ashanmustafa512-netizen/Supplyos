@@ -37,11 +37,16 @@ export function ManagerShiftLocation() {
     });
     if (error) {
       setMessage(`Location update not accepted: ${error.message}`);
+      if (/no longer active|not active/i.test(error.message)) {
+        stopWatching();
+        sessionIdRef.current = null;
+        setSession(null);
+      }
       return;
     }
     setLastUpdate(new Date().toISOString());
     setMessage("Your manager work-shift location is being shared with the owner.");
-  }, [supabase]);
+  }, [supabase, stopWatching]);
 
   const beginWatching = useCallback((sessionId: string) => {
     if (!navigator.geolocation) {
@@ -70,6 +75,14 @@ export function ManagerShiftLocation() {
 
   useEffect(() => {
     let alive = true;
+    const { data: authListener } = supabase.auth.onAuthStateChange(event => {
+      if (event === "SIGNED_OUT") {
+        stopWatching();
+        sessionIdRef.current = null;
+        setSession(null);
+      }
+    });
+
     async function loadActiveShift() {
       setLoading(true);
       const { data: authData } = await supabase.auth.getUser();
@@ -103,6 +116,7 @@ export function ManagerShiftLocation() {
     void loadActiveShift();
     return () => {
       alive = false;
+      authListener.subscription.unsubscribe();
       stopWatching();
     };
   }, [beginWatching, stopWatching, supabase]);
@@ -180,7 +194,7 @@ export function ManagerShiftLocation() {
           {session && <p className="helper-line">Shift started {new Date(session.started_at).toLocaleString()}{lastUpdate ? ` · Last GPS update ${new Date(lastUpdate).toLocaleTimeString()}` : ""}</p>}
         </div>
         {session
-          ? <button className="button button-secondary" type="button" onClick={() => void endShift()} disabled={busy || loading}>End shift & stop sharing</button>
+          ? <div className="row-actions"><button className="button button-secondary" type="button" onClick={() => beginWatching(session.id)} disabled={busy || loading}>Retry location</button><button className="button button-secondary" type="button" onClick={() => void endShift()} disabled={busy || loading}>End shift & stop sharing</button></div>
           : <button className="button button-primary" type="button" onClick={() => void startShift()} disabled={busy || loading}>{busy ? "Enabling…" : "Enable location & start shift"}</button>}
       </div>
       <p className="helper-line">Location is collected only during the shift you start here. Mobile browser tracking may pause when the Manager app is backgrounded; the owner map will mark an old update as stale.</p>

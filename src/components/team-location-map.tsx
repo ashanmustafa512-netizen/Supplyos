@@ -29,6 +29,7 @@ type LeafletApi = {
   tileLayer(url: string, options?: object): LeafletLayer;
   marker(position: LeafletPoint, options?: object): LeafletLayer;
   circle(position: LeafletPoint, options?: object): LeafletLayer;
+  polyline(points: LeafletPoint[], options?: object): LeafletLayer;
   layerGroup(): LeafletLayerGroup;
   latLngBounds(points: LeafletPoint[]): unknown;
 };
@@ -113,7 +114,7 @@ export function TeamLocationMap({
         const { data: membershipRows } = userIds.length
           ? await supabase.from("memberships").select("user_id,role").eq("organization_id", organizationId).in("user_id", userIds)
           : { data: [] as Array<{ user_id: string; role: string }> };
-        const roleByUser = new Map((membershipRows ?? []).map(row => [row.user_id, row.role]));
+        const roleByUser = new Map<string, string>((membershipRows ?? []).map(row => [row.user_id, row.role] as const));
         if (!mountedRef.current) return;
         setLocations(rows.map(row => ({
           id: String(row.id),

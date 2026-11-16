@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { CheckCircle2, Coins, Percent, Plus, SlidersHorizontal, TrendingDown } from "lucide-react";
 import { BookingExplorer, type BookingRow } from "@/components/booking-explorer";
-import { requireUser } from "@/lib/server-auth";
+import { getWorkspace, requireUser } from "@/lib/server-auth";
+import { canApproveBookings, canCompleteBookings } from "@/lib/access";
 import { money } from "@/lib/format";
 
 export const metadata: Metadata = { title: "Bookings" };
@@ -11,18 +12,28 @@ type SearchParams = Promise<{ success?: string; error?: string }>;
 
 export default async function BookingsPage({ searchParams }: { searchParams: SearchParams }) {
   const params = await searchParams;
-  const { supabase } = await requireUser();
+  const { supabase, user } = await requireUser();
+  const { membership } = await getWorkspace(supabase, user.id);
+  const role = String(membership?.role ?? "").toLowerCase();
+  const isEmployee = role === "staff";
+  const mayApprove = canApproveBookings(role);
+  const mayComplete = canCompleteBookings(role);
   const monthParts = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Karachi", year: "numeric", month: "2-digit" }).formatToParts(new Date());
   const year = monthParts.find(part => part.type === "year")?.value ?? "2026";
   const month = monthParts.find(part => part.type === "month")?.value ?? "01";
   const monthStart = `${year}-${month}-01`;
   const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Karachi", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
+  let bookingQuery = supabase.from("bookings")
+    .select("id, booking_no, booking_date, status, total_amount, total_cost, profit, score_snapshot, city, region, notes, created_at, customers(name, customer_code), booking_items(quantity, products(name, sku))")
+    .order("created_at", { ascending: false })
+    .limit(500);
+  if (isEmployee) bookingQuery = bookingQuery.eq("created_by", user.id);
+
   const [{ data, error }, summaryResult] = await Promise.all([
-    supabase.from("bookings")
-      .select("id, booking_no, booking_date, status, total_amount, total_cost, profit, score_snapshot, city, region, notes, created_at, customers(name, customer_code), booking_items(quantity, products(name, sku))")
-      .order("created_at", { ascending: false })
-      .limit(500),
-    supabase.rpc("supplyos_dashboard_summary", { p_month_start: monthStart, p_today: today }),
+    bookingQuery,
+    isEmployee
+      ? Promise.resolve({ data: null, error: null })
+      : supabase.rpc("supplyos_dashboard_summary", { p_month_start: monthStart, p_today: today }),
   ]);
 
   const bookings = (data ?? []) as unknown as BookingRow[];
@@ -64,8 +75,8 @@ export default async function BookingsPage({ searchParams }: { searchParams: Sea
         <div className="metric-card"><div className="metric-card-top"><span className="metric-icon metric-violet"><CheckCircle2 size={17}/></span><span className="metric-trend">This month</span></div><div className="metric-value metric-value-small">{money(approvedValue)}</div><div className="metric-label">Approved / completed value</div></div>
         <div className="metric-card"><div className="metric-card-top"><span className="metric-icon metric-red"><TrendingDown size={17}/></span><span className="metric-trend">This month</span></div><div className="metric-value metric-value-small">{money(cancelledValue)}</div><div className="metric-label">Cancelled order value</div></div>
       </div>
-      <BookingExplorer bookings={bookings}/>
-      <p className="helper-line"><SlidersHorizontal size={14}/> Credit and stock validations run when an order is approved. Showing the most recent {bookings.length} bookings.</p>
+      <BookingExplorer bookings={bookings} canApprove={mayApprove} canComplete={mayComplete} isEmployee={isEmployee}/>
+      <p className="helper-line"><SlidersHorizontal size={14}/> {isEmployee ? "You can see only bookings submitted from your account. " : "Credit and stock validations run when an order is approved. "}Showing {isEmployee ? "your most recent" : "the most recent"} {bookings.length} bookings.</p>
     </div>
   );
 }

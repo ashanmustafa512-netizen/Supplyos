@@ -1,18 +1,13 @@
-# SupplyOS Employee app (Android-first)
+# SupplyOS Team app
 
-The same company-phone app supports two explicit location-sharing modes:
+Android app for managers and employees to sign in, explicitly consent to work-shift location sharing, and stop sharing when the shift ends.
 
-- **Employee work shift:** an employee taps Agree & start shift location, shares location with authorized factory managers during that active shift, and taps End shift to stop.
-- **Delivery trip:** an assigned driver can start tracking only for an eligible in-transit load with a cleared truck inspection pass. Dispatch/assignment safety gates remain in force.
+## Setup
+1. Copy `.env.example` to `.env` and set `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY`.
+2. Install dependencies with `npm install`.
+3. Build a native Android development app with `npx expo prebuild` and `npx expo run:android`, or use EAS Build.
+4. Create a separate SupplyOS Auth account and organization membership for each manager/employee.
 
-Location is never collected merely because someone signs in. Android displays a persistent location notification while background tracking is active. The employee can stop sharing; managers can close a server session. See `../docs/EMPLOYEE_LOCATION_TRACKING.md` for employee privacy, database migration, setup, and test instructions and `../docs/ANDROID_DRIVER_TRACKING.md` for trip-specific details.
+Background location requires Android foreground and background location permission. The app shows a persistent notification while tracking. A manager or employee must explicitly start a shift; location updates stop when they end it. Device battery controls, GPS reception and network availability can affect update frequency. The owner sees current and stale shift positions in the SupplyOS Team live locations page.
 
-## Quick start
-1. Copy `.env.example` to `.env` and add the project's Supabase URL and publishable key. Never use a service-role/secret key in the app.
-2. Run `npm install`.
-3. Run `npx expo prebuild`, then `npx expo run:android` with Android Studio/SDK installed.
-4. Use a physical Android phone. Expo Go is not sufficient for background location.
-5. Create a separate Supabase Auth login for each employee and add the user to the correct factory organization. Do not share accounts.
-6. Apply migration `20261020190800_employee_shift_location_tracking.sql` to the matching Supabase project and verify the factory gate coordinates in Routes & geofencing.
-
-Background location requires foreground and background location permissions, a native build, a working GPS signal, and internet connectivity for live updates to reach the map. Android vendor battery management may interrupt tracking; test the actual phone models before rollout.
+This app no longer provides truck, driver assignment, dispatch, or delivery-trip tracking.

@@ -1,8 +1,8 @@
 {
   "expo": {
-    "name": "SupplyOS Employee",
-    "slug": "supplyos-employee",
-    "scheme": "supplyosemployee",
+    "name": "SupplyOS Team",
+    "slug": "supplyos-team",
+    "scheme": "supplyosteam",
     "version": "0.1.0",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
@@ -13,8 +13,8 @@
     },
     "plugins": [
       ["expo-location", {
-        "locationWhenInUsePermission": "SupplyOS uses location only during a work shift or delivery trip that you explicitly start.",
-        "locationAlwaysAndWhenInUsePermission": "SupplyOS uses location in the background only during your active work shift or authorized delivery trip.",
+        "locationWhenInUsePermission": "SupplyOS uses location only during a work shift that you explicitly start.",
+        "locationAlwaysAndWhenInUsePermission": "SupplyOS uses location in the background only during your active work shift.",
         "isAndroidBackgroundLocationEnabled": true,
         "isAndroidForegroundServiceEnabled": true
       }]

@@ -6,7 +6,7 @@ import { useState } from "react";
 import {
   Activity, Bell, Boxes, Building2, Calculator, ChevronDown, ChevronLeft,
   ClipboardCheck, Command, CreditCard, Factory, LayoutDashboard, LogOut,
-  Menu, Users, Wallet, type LucideIcon,
+  Menu, Wallet, type LucideIcon,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { ThemeControl } from "@/components/theme-control";

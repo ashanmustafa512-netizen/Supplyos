@@ -42,6 +42,19 @@ export function AppShell({ children, email, workspaceName, role }: ShellProps) {
   async function signOut() {
     setSigningOut(true);
     const supabase = createClient();
+    if (normalizedRole === "manager") {
+      const { data: authData } = await supabase.auth.getUser();
+      if (authData.user) {
+        const { data: activeShift } = await supabase.from("employee_location_sessions")
+          .select("id").eq("user_id", authData.user.id).is("ended_at", null).maybeSingle();
+        if (activeShift) {
+          await supabase.rpc("stop_employee_location_shift", {
+            p_session_id: activeShift.id,
+            p_reason: "manager_signed_out",
+          });
+        }
+      }
+    }
     await supabase.auth.signOut();
     router.replace("/login");
     router.refresh();

@@ -3,7 +3,7 @@ import * as Location from 'expo-location';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from './supabase';
 
-export const LOCATION_TASK = 'SUPPLYOS_ACTIVE_TRIP_LOCATION';
+export const LOCATION_TASK = 'SUPPLYOS_ACTIVE_SHIFT_LOCATION';
 const SESSION_KEY = 'supplyos.activeTrackingSession';
 export const SHIFT_SESSION_KEY = 'supplyos.activeEmployeeShiftSession';
 
@@ -23,8 +23,8 @@ TaskManager.defineTask(LOCATION_TASK, async ({ data, error }) => {
   // No local claim of success: if network drops, the server timestamp remains stale
   // and dispatch will show that truth. Expo will retry on a later location callback.
   if (rpcError) {
-    console.warn('SupplyOS location was not accepted; dispatch will show stale status.', rpcError.message);
-    // A temporary network failure should not end a trip. Stop only when the server
+    console.warn('SupplyOS location was not accepted; the owner map will show stale status.', rpcError.message);
+    // A temporary network failure should not end the shift. Stop only when the server
     // explicitly reports that the authorization/session/trip is no longer valid.
     if (/no longer active|no longer in transit|assignment is no longer active/i.test(rpcError.message)) {
       try { await Location.stopLocationUpdatesAsync(LOCATION_TASK); } catch { /* task may already be stopped */ }
@@ -36,7 +36,7 @@ TaskManager.defineTask(LOCATION_TASK, async ({ data, error }) => {
 
 export async function beginNativeLocationUpdates(mode: 'trip' | 'shift' = 'trip') {
   const foreground = await Location.requestForegroundPermissionsAsync();
-  if (foreground.status !== 'granted') throw new Error('Location permission is required to start trip tracking.');
+  if (foreground.status !== 'granted') throw new Error('Location permission is required to start work-shift location sharing.');
   const background = await Location.requestBackgroundPermissionsAsync();
   if (background.status !== 'granted') throw new Error('Allow background location in Android settings so tracking continues when the screen is locked.');
   const already = await TaskManager.isTaskRegisteredAsync(LOCATION_TASK);
@@ -50,7 +50,7 @@ export async function beginNativeLocationUpdates(mode: 'trip' | 'shift' = 'trip'
     pausesUpdatesAutomatically: false,
     showsBackgroundLocationIndicator: true,
     foregroundService: {
-      notificationTitle: mode === 'shift' ? 'SupplyOS work-shift location is active' : 'SupplyOS trip tracking is active',
+      notificationTitle: mode === 'shift' ? 'SupplyOS work-shift location is active' : 'SupplyOS work-shift location sharing is active',
       notificationBody: mode === 'shift' ? 'Location is shared with authorized factory managers during your active work shift. Stop sharing when your shift ends.' : 'Location is shared with authorized factory dispatch during this trip.',
       notificationColor: '#0B1220',
       killServiceOnDestroy: false,

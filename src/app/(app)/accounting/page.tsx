@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { Activity, ArrowDownRight, ArrowUpRight, BookOpen, CircleDollarSign, FileBarChart, Wallet } from "lucide-react";
-import { addExpense, addOtherIncome, postManualJournal } from "@/app/(app)/accounting/actions";
+import { addExpense, addOtherIncome, postManualJournal, saveFinancialGoals } from "@/app/(app)/accounting/actions";
 import { getWorkspace, requireUser } from "@/lib/server-auth";
 import { canAccessAccounting } from "@/lib/access";
 import { money, dateLabel } from "@/lib/format";
@@ -19,13 +19,14 @@ export default async function AccountingPage({ searchParams }: { searchParams: P
   const { supabase, user } = await requireUser();
   const { membership } = await getWorkspace(supabase, user.id);
   if (!membership || !canAccessAccounting(membership.role)) redirect("/dashboard");
-  const [summaryR, accountsR, invoicesR, expensesR, entriesR, paymentsR] = await Promise.all([
+  const [summaryR, accountsR, invoicesR, expensesR, entriesR, paymentsR, goalsR] = await Promise.all([
     supabase.rpc("finance_dashboard_summary", { p_from_date: from, p_to_date: to }),
     supabase.from("finance_accounts").select("id,code,name,account_type,is_active,is_system").eq("is_active", true).order("code"),
     supabase.from("sales_invoices").select("id,invoice_no,issue_date,due_date,total_amount,amount_paid,balance_due,status").order("issue_date", { ascending: false }).limit(20),
     supabase.from("finance_expenses").select("id,expense_no,expense_date,description,vendor,amount").order("expense_date", { ascending: false }).limit(20),
     supabase.from("accounting_journal_entries").select("id,entry_no,entry_date,source_type,description,status,debit_total,credit_total").order("entry_date", { ascending: false }).limit(20),
     supabase.from("sales_payments").select("id,receipt_no,payment_date,amount,payment_method,reference").order("payment_date", { ascending: false }).limit(10),
+    supabase.from("organizations").select("monthly_revenue_goal,monthly_expense_budget").eq("id", membership.organization_id).maybeSingle(),
   ]);
   const summary = (summaryR.data ?? {}) as Record<string, any>;
   const accounts = accountsR.data ?? [];
@@ -33,6 +34,10 @@ export default async function AccountingPage({ searchParams }: { searchParams: P
   const expenses = expensesR.data ?? [];
   const entries = entriesR.data ?? [];
   const payments = paymentsR.data ?? [];
+  const revenueGoal = Number(goalsR.data?.monthly_revenue_goal ?? 0);
+  const expenseBudget = Number(goalsR.data?.monthly_expense_budget ?? 0);
+  const revenueProgress = revenueGoal > 0 ? Math.min(100, Math.round(revenue / revenueGoal * 100)) : 0;
+  const expenseProgress = expenseBudget > 0 ? Math.min(100, Math.round(ledgerExpenses / expenseBudget * 100)) : 0;
   const trend = rows(summary.monthly_trend);
   const revenue = Number(summary.ledger_revenue ?? 0);
   const ledgerExpenses = Number(summary.ledger_expenses ?? 0);
@@ -52,6 +57,14 @@ export default async function AccountingPage({ searchParams }: { searchParams: P
       <div className="metric-card"><div className="metric-card-top"><span className={`metric-icon ${netIncome >= 0 ? "metric-green" : "metric-amber"}`}><Wallet size={17} /></span><span className="metric-trend">Net result</span></div><div className="metric-value metric-value-small">{money(netIncome)}</div><div className="metric-label">Net income for period</div><div className="metric-subtext">Revenue less posted expenses</div></div>
       <div className="metric-card"><div className="metric-card-top"><span className="metric-icon metric-blue"><CircleDollarSign size={17} /></span><span className="metric-trend">Sales</span></div><div className="metric-value metric-value-small">{money(summary.period_invoice_sales ?? 0)}</div><div className="metric-label">Invoices issued in period</div><div className="metric-subtext">Collections in period: {money(summary.period_collections ?? 0)}</div></div>
     </div>
+    <section className="panel">
+      <div className="panel-heading"><div><h2>Monthly financial goals</h2><p>Set realistic revenue and expense targets, then compare them with the selected reporting period.</p></div><span className="panel-heading-icon"><Activity size={17}/></span></div>
+      <div className="metric-grid metric-grid-two">
+        <div className="metric-card"><div className="metric-card-top"><span className="metric-icon metric-green"><ArrowUpRight size={17}/></span><span className="metric-trend">Revenue target</span></div><div className="metric-value metric-value-small">{money(revenueGoal)}</div><div className="metric-label">Actual {money(revenue)} · {revenueGoal > 0 ? `${revenueProgress}% reached` : "No target set"}</div><div className="score-progress"><span style={{width:`${revenueProgress}%`}}/></div></div>
+        <div className="metric-card"><div className="metric-card-top"><span className="metric-icon metric-amber"><ArrowDownRight size={17}/></span><span className="metric-trend">Expense ceiling</span></div><div className="metric-value metric-value-small">{money(expenseBudget)}</div><div className="metric-label">Actual {money(ledgerExpenses)} · {expenseBudget > 0 ? `${expenseProgress}% of budget used` : "No budget set"}</div><div className="score-progress"><span style={{width:`${expenseProgress}%`}}/></div></div>
+      </div>
+      <form action={saveFinancialGoals} className="compact-form"><div className="form-grid form-grid-two"><Field label="Monthly revenue goal (PKR)" name="monthly_revenue_goal" type="number" min="0" step="1000" defaultValue={revenueGoal} required/><Field label="Monthly expense budget (PKR)" name="monthly_expense_budget" type="number" min="0" step="1000" defaultValue={expenseBudget} required/></div><button className="button button-secondary" type="submit">Save monthly goals</button></form>
+    </section>
     <div className="metric-grid metric-grid-five">
       <div className="metric-card"><div className="metric-card-top"><span className="metric-icon metric-blue"><FileBarChart size={17} /></span></div><div className="metric-value metric-value-small">{money(summary.open_receivables ?? 0)}</div><div className="metric-label">Accounts receivable</div><div className="metric-subtext">Open customer invoice balances</div></div>
       <div className="metric-card"><div className="metric-card-top"><span className="metric-icon metric-amber"><ArrowDownRight size={17} /></span></div><div className="metric-value metric-value-small">{money(summary.supplier_payables ?? 0)}</div><div className="metric-label">Supplier payables</div><div className="metric-subtext">Posted supplier liability</div></div>

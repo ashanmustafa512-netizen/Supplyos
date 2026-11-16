@@ -31,10 +31,12 @@ export default async function DashboardPage() {
   const role = normalizeRole(membership.role);
 
   if (role === "staff") {
-    const { data: myBookings } = await supabase.from("bookings")
-      .select("id,booking_no,status,total_amount,booking_date,customers(name)")
-      .order("created_at", { ascending: false }).limit(8);
-    const rows = myBookings ?? [];
+    const { data: myBookingsData } = await supabase.rpc("get_my_bookings");
+    const myBookings = (myBookingsData ?? []) as unknown as Array<{
+      id: string; booking_no: string; status: string; total_amount: number | string;
+      booking_date: string; customers?: { name: string } | null;
+    }>;
+    const rows = myBookings.slice(0, 8);
     const pending = rows.filter(row => row.status === "pending_approval").length;
     const approved = rows.filter(row => row.status === "approved" || row.status === "completed").length;
     return <div className="page-stack dashboard-stack">
@@ -45,7 +47,7 @@ export default async function DashboardPage() {
         <div className="metric-card"><div className="metric-card-top"><span className="metric-icon metric-amber"><Clock3 size={17}/></span><span className="metric-trend">Awaiting owner</span></div><div className="metric-value">{pending}</div><div className="metric-label">Pending approval</div></div>
         <div className="metric-card"><div className="metric-card-top"><span className="metric-icon metric-green"><CheckCircle2 size={17}/></span><span className="metric-trend">Progress</span></div><div className="metric-value">{approved}</div><div className="metric-label">Approved or completed</div></div>
       </div>
-      <section className="panel recent-panel"><div className="panel-heading"><div><h2>Your recent bookings</h2><p>Only bookings submitted by your account are shown here.</p></div><Link className="inline-link" href="/bookings">View all <ArrowRight size={14}/></Link></div><div className="recent-list">{rows.map(row => <Link className="recent-row" href={`/bookings/${row.id}`} key={row.id}><span className="recent-icon"><ClipboardCheck size={17}/></span><span className="recent-copy"><strong>{row.booking_no}</strong><small>{row.customers?.[0]?.name ?? "Shop"} · {row.booking_date}</small></span><span className="recent-amount"><span className={`status-text status-text-${row.status}`}>{row.status.replaceAll("_"," ")}</span></span><ArrowRight size={15}/></Link>)}{!rows.length && <div className="empty-inline"><span><ClipboardCheck size={18}/></span><div><strong>No bookings yet</strong><p>Create your first shop order to get started.</p></div><Link href="/bookings/new" className="button button-small button-primary">Create booking</Link></div>}</div></section>
+      <section className="panel recent-panel"><div className="panel-heading"><div><h2>Your recent bookings</h2><p>Only bookings submitted by your account are shown here.</p></div><Link className="inline-link" href="/bookings">View all <ArrowRight size={14}/></Link></div><div className="recent-list">{rows.map(row => <Link className="recent-row" href={`/bookings/${row.id}`} key={row.id}><span className="recent-icon"><ClipboardCheck size={17}/></span><span className="recent-copy"><strong>{row.booking_no}</strong><small>{row.customers?.name ?? "Shop"} · {row.booking_date}</small></span><span className="recent-amount"><span className={`status-text status-text-${row.status}`}>{row.status.replaceAll("_"," ")}</span></span><ArrowRight size={15}/></Link>)}{!rows.length && <div className="empty-inline"><span><ClipboardCheck size={18}/></span><div><strong>No bookings yet</strong><p>Create your first shop order to get started.</p></div><Link href="/bookings/new" className="button button-small button-primary">Create booking</Link></div>}</div></section>
     </div>;
   }
 

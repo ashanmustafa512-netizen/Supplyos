@@ -58,20 +58,17 @@ export default function App() {
       return;
     }
 
-    const [shopResult, productResult, bookingResult, profileResult] = await Promise.all([
-      supabase.from("customers").select("id,customer_code,name,city,region")
-        .eq("organization_id", membership.organization_id).eq("status", "active").order("name").limit(1000),
-      supabase.from("products").select("id,sku,name,unit,unit_price,stock_on_hand,stock_reserved")
-        .eq("organization_id", membership.organization_id).eq("is_active", true).order("name").limit(1000),
-      supabase.from("bookings").select("id,booking_no,status,booking_date,total_amount,customers(name)")
-        .eq("organization_id", membership.organization_id).order("created_at", { ascending: false }).limit(30),
+    const [catalogResult, bookingResult, profileResult] = await Promise.all([
+      supabase.rpc("get_booking_catalog"),
+      supabase.rpc("get_my_bookings"),
       supabase.from("profiles").select("full_name").eq("id", user.id).maybeSingle(),
     ]);
-    if (shopResult.error || productResult.error || bookingResult.error) {
-      setMessage(shopResult.error?.message ?? productResult.error?.message ?? bookingResult.error?.message ?? "Workspace data could not be loaded.");
+    if (catalogResult.error || bookingResult.error) {
+      setMessage(catalogResult.error?.message ?? bookingResult.error?.message ?? "Workspace data could not be loaded.");
     }
-    setShops((shopResult.data ?? []) as Shop[]);
-    setProducts((productResult.data ?? []) as Product[]);
+    const catalog = (catalogResult.data ?? { shops: [], products: [] }) as unknown as { shops: Shop[]; products: Product[] };
+    setShops(catalog.shops ?? []);
+    setProducts(catalog.products ?? []);
     setBookings((bookingResult.data ?? []) as unknown as MyBooking[]);
     setEmployeeName(profileResult.data?.full_name || user.email?.split("@")[0] || "Employee");
   }, []);

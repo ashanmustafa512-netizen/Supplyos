@@ -27,9 +27,13 @@ export default async function DashboardPage() {
   const { supabase, user } = await requireUser();
   const { membership } = await getWorkspace(supabase, user.id);
   const role = String(membership?.role ?? "").toLowerCase();
-  if (!membership || role === "staff" || role === "accountant") {
+  if (!membership || role === "staff") {
     const { redirect } = await import("next/navigation");
     redirect("/bookings");
+  }
+  if (role === "accountant") {
+    const { redirect } = await import("next/navigation");
+    redirect("/accounting");
   }
   const ownerView = isOwnerOrAdmin(role);
   const visibleModules = modules.filter(module => !module.ownerOnly || ownerView);

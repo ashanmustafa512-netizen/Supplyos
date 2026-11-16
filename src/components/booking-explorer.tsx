@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import { ArrowRight, Check, CircleX, Clock3, Eye, MoreHorizontal, PackageCheck, Search, ShieldCheck, RefreshCw } from "lucide-react";
 import { bookingAction, bulkApproveBookingsInline } from "@/app/(app)/bookings/actions";
 import { money } from "@/lib/format";
+import { canApproveBookings, canCancelBookings, canCompleteBookings } from "@/lib/access";
 
 export type BookingRow = {
   id: string;
@@ -34,7 +35,10 @@ const statusTabs = [
 ];
 const statusLabels: Record<string, string> = { pending_approval: "Pending approval", approved: "Approved", cancelled: "Cancelled", rejected: "Rejected", completed: "Completed", remade: "Remade" };
 
-export function BookingExplorer({ bookings }: { bookings: BookingRow[] }) {
+export function BookingExplorer({ bookings, role }: { bookings: BookingRow[]; role: string }) {
+  const canApprove = canApproveBookings(role);
+  const canComplete = canCompleteBookings(role);
+  const canCancel = canCancelBookings(role);
   const [rows, setRows] = useState(bookings);
   const [bulkBusy, setBulkBusy] = useState(false);
   const [bulkNotice, setBulkNotice] = useState<{ ok: boolean; text: string } | null>(null);
@@ -109,7 +113,7 @@ export function BookingExplorer({ bookings }: { bookings: BookingRow[] }) {
 
         <div className="status-tabs" role="tablist" aria-label="Filter bookings by status">{statusTabs.map(tab => <button type="button" role="tab" aria-selected={status === tab.key} className={`status-tab ${status === tab.key ? "status-tab-active" : ""}`} key={tab.key} onClick={() => { setFiltersChanged(); setStatus(tab.key); }}>{tab.label}<span>{counts[tab.key] ?? 0}</span></button>)}</div>
 
-        {visiblePending.length > 0 && <div className="bulk-approval-bar">
+        {canApprove && visiblePending.length > 0 && <div className="bulk-approval-bar">
           <label className="select-visible-pending"><input type="checkbox" checked={allVisibleSelected} onChange={event => toggleVisiblePending(event.target.checked)}/><span>Select up to 100 visible pending</span></label>
           <div className="bulk-approval-copy">{selectedIds.length > 0 ? <span><strong>{selectedIds.length}</strong> selected</span> : <span>Choose pending orders to approve together</span>}
             <form onSubmit={async event => { event.preventDefault(); if (bulkBusy || !selectedIds.length) return; setBulkBusy(true); setBulkNotice(null); const result = await bulkApproveBookingsInline(selectedIds); setBulkBusy(false); if (result.approvedIds.length) { setRows(current => current.map(row => result.approvedIds.includes(row.id) ? { ...row, status: "approved" } : row)); setSelectedIds(current => current.filter(id => !result.approvedIds.includes(id))); } const message = result.approvedIds.length ? `Approved ${result.approvedIds.length} booking${result.approvedIds.length === 1 ? "" : "s"}.` : "No bookings were approved."; setBulkNotice({ ok: result.approvedIds.length > 0 && result.failures.length === 0, text: `${message}${result.failures.length ? ` ${result.failures.length} failed: ${result.failures.slice(0, 2).map(issue => issue.message).join("; ")}` : " Credit and stock checks passed."}` }); }}>
@@ -128,7 +132,7 @@ export function BookingExplorer({ bookings }: { bookings: BookingRow[] }) {
             const profit = Number(booking.profit ?? (amount - cost));
             const firstItem = booking.booking_items?.[0];
             return <tr key={booking.id}>
-              <td className="select-column">{booking.status === "pending_approval" ? <input type="checkbox" aria-label={`Select ${booking.booking_no} for bulk approval`} checked={selectedIds.includes(booking.id)} disabled={selectedIds.length >= 100 && !selectedIds.includes(booking.id)} onChange={event => toggleSelected(booking.id, event.target.checked)}/> : <span className="not-selectable">—</span>}</td>
+              <td className="select-column">{booking.status === "pending_approval" && canApprove ? <input type="checkbox" aria-label={`Select ${booking.booking_no} for bulk approval`} checked={selectedIds.includes(booking.id)} disabled={selectedIds.length >= 100 && !selectedIds.includes(booking.id)} onChange={event => toggleSelected(booking.id, event.target.checked)}/> : <span className="not-selectable">—</span>}</td>
               <td><div className="booking-primary"><span className="booking-ref">{booking.booking_no}</span><span className="booking-date">{new Intl.DateTimeFormat("en-PK", { day: "2-digit", month: "short", year: "numeric" }).format(new Date(`${booking.booking_date.slice(0, 10)}T12:00:00`))}</span></div></td>
               <td><div className="customer-primary"><span className="customer-avatar">{(booking.customers?.name?.[0] || "C").toUpperCase()}</span><span><strong>{booking.customers?.name ?? "Unknown customer"}</strong><small>{booking.customers?.customer_code ?? "—"} · {[booking.city, booking.region].filter(Boolean).join(", ") || "No destination"}</small>{firstItem && <small className="item-line">{firstItem.products?.name ?? "Product"} · qty {firstItem.quantity}</small>}</span></div></td>
               <td><span className="money-primary">{money(amount)}</span><small className="table-muted">incl. all listed items</small></td>
@@ -136,12 +140,12 @@ export function BookingExplorer({ bookings }: { bookings: BookingRow[] }) {
               <td><div className="score-wrap"><div className="score-line"><span>{booking.score_snapshot}/100</span><span className="score-track"><i style={{ width: `${Math.min(100, Math.max(0, booking.score_snapshot))}%` }}/></span></div></div></td>
               <td><span className={`status-pill status-${booking.status}`}><i/>{statusLabels[booking.status] ?? booking.status}</span></td>
               <td><div className="row-actions">
-                {booking.status === "pending_approval" && <>
+                {booking.status === "pending_approval" && canApprove && <>
                   <form action={bookingAction}><input type="hidden" name="booking_id" value={booking.id}/><input type="hidden" name="action" value="approve"/><button className="action-icon action-approve" title="Approve booking" aria-label={`Approve ${booking.booking_no}`}><Check size={16}/></button></form>
                   <form action={bookingAction}><input type="hidden" name="booking_id" value={booking.id}/><input type="hidden" name="action" value="reject"/><button className="action-icon action-reject" title="Reject booking" aria-label={`Reject ${booking.booking_no}`}><CircleX size={16}/></button></form>
                 </>}
-                {booking.status === "approved" && <form action={bookingAction}><input type="hidden" name="booking_id" value={booking.id}/><input type="hidden" name="action" value="complete"/><button className="button button-xs button-primary" title="Complete booking"><Check size={13}/> Complete</button></form>}
-                {(booking.status === "pending_approval" || booking.status === "approved") && <form action={bookingAction}><input type="hidden" name="booking_id" value={booking.id}/><input type="hidden" name="action" value="cancel"/><button className="action-icon action-more" title="Cancel booking" aria-label={`Cancel ${booking.booking_no}`}><MoreHorizontal size={16}/></button></form>}
+                {booking.status === "approved" && canComplete && <form action={bookingAction}><input type="hidden" name="booking_id" value={booking.id}/><input type="hidden" name="action" value="complete"/><button className="button button-xs button-primary" title="Complete booking"><Check size={13}/> Complete</button></form>}
+                {canCancel && (booking.status === "pending_approval" || booking.status === "approved") && <form action={bookingAction}><input type="hidden" name="booking_id" value={booking.id}/><input type="hidden" name="action" value="cancel"/><button className="action-icon action-more" title="Cancel booking" aria-label={`Cancel ${booking.booking_no}`}><MoreHorizontal size={16}/></button></form>}
                 <Link className="action-icon action-more" href={`/bookings/${booking.id}`} title="View booking details" aria-label={`View ${booking.booking_no}`}><Eye size={15}/></Link>
               </div></td>
             </tr>;

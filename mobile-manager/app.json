@@ -1,0 +1,26 @@
+{
+  "expo": {
+    "name": "SupplyOS Manager",
+    "slug": "supplyos-manager",
+    "scheme": "supplyosmanager",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "android": {
+      "package": "com.supplyos.manager",
+      "permissions": [
+        "INTERNET",
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION"
+      ],
+      "adaptiveIcon": {
+        "backgroundColor": "#0B1220"
+      }
+    },
+    "ios": {
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "SupplyOS shares your location with the factory owner during your active work shift."
+      }
+    }
+  }
+}

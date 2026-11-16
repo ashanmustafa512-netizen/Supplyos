@@ -11,8 +11,9 @@
     "check": "npm run typecheck && npm run lint && npm run build",
     "check:mobile-admin": "npm --prefix mobile-admin run typecheck",
     "check:mobile-driver": "npm --prefix mobile-driver run typecheck",
-    "check:mobile": "npm run check:mobile-admin && npm run check:mobile-driver",
-    "check:all": "npm run check && npm run check:mobile"
+    "check:mobile": "npm run check:mobile-admin && npm run check:mobile-manager && npm run check:mobile-driver",
+    "check:all": "npm run check && npm run check:mobile",
+    "check:mobile-manager": "npm --prefix mobile-manager run typecheck"
   },
   "dependencies": {
     "@supabase/ssr": "^0.7.0",

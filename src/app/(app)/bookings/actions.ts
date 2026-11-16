@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { requireUser } from "@/lib/server-auth";
+import { requireUser, requireWorkspaceRole } from "@/lib/server-auth";
 
 function withMessage(path: string, key: "error" | "success", value: string) {
   return `${path}?${key}=${encodeURIComponent(value)}`;
@@ -135,4 +135,45 @@ export async function bulkApproveBookingsInline(rawIds: string[]): Promise<BulkA
     revalidatePath("/inventory");
   }
   return { approvedIds, failures };
+}
+
+
+/** Shop records are maintained inside the booking workflow, not a standalone Customers tab. */
+export async function createBookingShop(formData: FormData) {
+  const customerCode = String(formData.get("customer_code") ?? "").trim().toUpperCase();
+  const name = String(formData.get("name") ?? "").trim();
+  const city = String(formData.get("city") ?? "").trim();
+  const region = String(formData.get("region") ?? "").trim();
+  const phone = String(formData.get("phone") ?? "").trim();
+  const creditLimit = Number(formData.get("credit_limit") ?? 0);
+
+  if (!customerCode || !name || !Number.isFinite(creditLimit) || creditLimit < 0) {
+    redirect(withMessage("/bookings/new-shop", "error", "Enter a shop code, shop name and valid non-negative credit limit."));
+  }
+
+  const { supabase, organization, membership } = await requireWorkspaceRole(["owner", "admin", "manager"]);
+  if (!organization || !membership) {
+    redirect(withMessage("/bookings/new-shop", "error", "No factory workspace is linked to this account."));
+  }
+
+  const { error } = await supabase.from("customers").insert({
+    organization_id: organization.id,
+    customer_code: customerCode,
+    name,
+    city,
+    region,
+    phone,
+    credit_limit: creditLimit,
+    score: 75,
+  });
+
+  if (error) {
+    redirect(withMessage("/bookings/new-shop", "error", error.code === "23505"
+      ? "That shop code already exists in this factory."
+      : error.message));
+  }
+
+  revalidatePath("/bookings/new");
+  revalidatePath("/bookings");
+  redirect(withMessage("/bookings/new", "success", "Shop added. Select it in your new booking."));
 }

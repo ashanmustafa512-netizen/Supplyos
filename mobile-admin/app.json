@@ -1,13 +1,13 @@
 {
   "expo": {
-    "name": "SupplyOS Admin",
-    "slug": "supplyos-admin-dispatch",
-    "scheme": "supplyosadmin",
+    "name": "SupplyOS Owner",
+    "slug": "supplyos-owner",
+    "scheme": "supplyosowner",
     "version": "0.1.0",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
     "android": {
-      "package": "com.supplyos.admin",
+      "package": "com.supplyos.owner",
       "permissions": [
         "INTERNET"
       ],

@@ -3,28 +3,83 @@ import Link from "next/link";
 import {
   ArrowRight, ArrowUpRight, Boxes, BriefcaseBusiness, Calculator, CheckCircle2,
   ClipboardCheck, Clock3, CreditCard, Factory, MapPinned, PackageCheck, Plus,
-  ShieldAlert, Truck, Users, Wallet, Warehouse,
+  ShieldAlert, Users, Wallet, Warehouse,
 } from "lucide-react";
-import { requireUser } from "@/lib/server-auth";
+import { getWorkspace, requireUser } from "@/lib/server-auth";
+import { normalizeRole } from "@/lib/access";
+import { redirect } from "next/navigation";
 import { money } from "@/lib/format";
 
 export const metadata: Metadata = { title: "Overview" };
 
 const modules = [
   { title: "Bookings", description: "Orders, approvals, and credit checks", href: "/bookings", icon: ClipboardCheck, color: "module-blue", tag: "ACTIVE", active: true },
-  { title: "Dispatch", description: "Coordinate fulfilment and deliveries", href: "/dispatch", icon: Truck, color: "module-orange", tag: "NEXT UP", active: false },
-  { title: "Route planning & geofencing", description: "Plan routes and location rules", href: "/routes", icon: MapPinned, color: "module-purple", tag: "PLANNED", active: false },
+  { title: "Team live location", description: "See active employee and manager shifts", href: "/team-location", icon: MapPinned, color: "module-purple", tag: "ACTIVE", active: true },
   { title: "Procurement, stock & warehouse", description: "Manage product masters and stock", href: "/inventory", icon: Warehouse, color: "module-green", tag: "PARTIAL", active: true },
-  { title: "Accounting", description: "Track costs and financial controls", href: "/accounting", icon: Calculator, color: "module-teal", tag: "PLANNED", active: false },
-  { title: "Sales & recovery", description: "Manage receivables and payments", href: "/sales", icon: CreditCard, color: "module-pink", tag: "PLANNED", active: false },
-  { title: "Payroll", description: "Employee records and payroll cycles", href: "/payroll", icon: Wallet, color: "module-indigo", tag: "PLANNED", active: false },
+  { title: "Accounting", description: "Track company expenses, income and profit", href: "/accounting", icon: Calculator, color: "module-teal", tag: "ACTIVE", active: true },
+  { title: "Sales & recovery", description: "Track sales, collections and outstanding balances", href: "/sales", icon: CreditCard, color: "module-pink", tag: "ACTIVE", active: true },
+  { title: "Payroll", description: "Manage salaries, allowances and payroll cycles", href: "/payroll", icon: Wallet, color: "module-indigo", tag: "ACTIVE", active: true },
 ];
 
 function startOfMonth() { const today = localDate(); return `${today.slice(0, 7)}-01`; }
 function localDate(date = new Date()) { return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Karachi", year: "numeric", month: "2-digit", day: "2-digit" }).format(date); }
 
 export default async function DashboardPage() {
-  const { supabase } = await requireUser();
+  const { supabase, user } = await requireUser();
+  const { organization, membership } = await getWorkspace(supabase, user.id);
+  if (!organization || !membership) redirect("/login");
+  const role = normalizeRole(membership.role);
+
+  if (role === "staff") {
+    const { data: myBookingsData } = await supabase.rpc("get_my_bookings");
+    const myBookings = (myBookingsData ?? []) as unknown as Array<{
+      id: string; booking_no: string; status: string; total_amount: number | string;
+      booking_date: string; customers?: { name: string } | null;
+    }>;
+    const rows = myBookings.slice(0, 8);
+    const pending = rows.filter(row => row.status === "pending_approval").length;
+    const approved = rows.filter(row => row.status === "approved" || row.status === "completed").length;
+    return <div className="page-stack dashboard-stack">
+      <div className="welcome-heading"><div><div className="eyebrow">EMPLOYEE WORKSPACE</div><h1>Your workday at a glance<span className="heading-period">.</span></h1><p>Create shop orders and follow every booking you have submitted.</p></div></div>
+      <div className="overview-hero"><div className="overview-hero-copy"><div className="hero-pill"><span/> EMPLOYEE APP</div><h2>Visit shops.<br/><em>Record orders accurately.</em></h2><p>Start a booking while you are with a shop. Your order will be sent to the owner for approval.</p><div className="hero-actions"><Link href="/bookings/new" className="button button-white"><Plus size={16}/> Create a booking</Link><Link href="/bookings" className="hero-text-link">My bookings <ArrowRight size={15}/></Link></div></div></div>
+      <div className="metric-grid metric-grid-three">
+        <div className="metric-card"><div className="metric-card-top"><span className="metric-icon metric-blue"><ClipboardCheck size={17}/></span><span className="metric-trend">Orders</span></div><div className="metric-value">{rows.length}</div><div className="metric-label">Recent bookings</div></div>
+        <div className="metric-card"><div className="metric-card-top"><span className="metric-icon metric-amber"><Clock3 size={17}/></span><span className="metric-trend">Awaiting owner</span></div><div className="metric-value">{pending}</div><div className="metric-label">Pending approval</div></div>
+        <div className="metric-card"><div className="metric-card-top"><span className="metric-icon metric-green"><CheckCircle2 size={17}/></span><span className="metric-trend">Progress</span></div><div className="metric-value">{approved}</div><div className="metric-label">Approved or completed</div></div>
+      </div>
+      <section className="panel recent-panel"><div className="panel-heading"><div><h2>Your recent bookings</h2><p>Only bookings submitted by your account are shown here.</p></div><Link className="inline-link" href="/bookings">View all <ArrowRight size={14}/></Link></div><div className="recent-list">{rows.map(row => <Link className="recent-row" href={`/bookings/${row.id}`} key={row.id}><span className="recent-icon"><ClipboardCheck size={17}/></span><span className="recent-copy"><strong>{row.booking_no}</strong><small>{row.customers?.name ?? "Shop"} · {row.booking_date}</small></span><span className="recent-amount"><span className={`status-text status-text-${row.status}`}>{row.status.replaceAll("_"," ")}</span></span><ArrowRight size={15}/></Link>)}{!rows.length && <div className="empty-inline"><span><ClipboardCheck size={18}/></span><div><strong>No bookings yet</strong><p>Create your first shop order to get started.</p></div><Link href="/bookings/new" className="button button-small button-primary">Create booking</Link></div>}</div></section>
+    </div>;
+  }
+
+  if (role === "manager") {
+    const [recentResult, pendingResult, productResult] = await Promise.all([
+      supabase.from("bookings").select("id,booking_no,status,booking_date,customers(name)").order("created_at", { ascending: false }).limit(6),
+      supabase.from("bookings").select("id", { count: "exact", head: true }).eq("status", "pending_approval"),
+      supabase.from("products").select("id,name,sku,stock_on_hand,stock_reserved").eq("is_active", true).order("name").limit(500),
+    ]);
+    const recent = recentResult.data ?? [];
+    const lowStock = (productResult.data ?? []).filter(product => Number(product.stock_on_hand) - Number(product.stock_reserved) <= 0);
+    return <div className="page-stack dashboard-stack">
+      <div className="welcome-heading"><div><div className="eyebrow">MANAGER WORKSPACE</div><h1>Factory operations<span className="heading-period">.</span></h1><p>Keep bookings moving, watch stock levels and coordinate today's work.</p></div></div>
+      <div className="overview-hero"><div className="overview-hero-copy"><div className="hero-pill"><span/> MANAGER APP</div><h2>Keep the factory moving.<br/><em>One clear operating view.</em></h2><p>Create orders from shop visits, monitor inventory and follow pending owner approvals.</p><div className="hero-actions"><Link href="/bookings/new" className="button button-white"><Plus size={16}/> Create booking</Link><Link href="/inventory" className="hero-text-link">Open stock <ArrowRight size={15}/></Link></div></div></div>
+      <div className="metric-grid metric-grid-three">
+        <div className="metric-card"><div className="metric-card-top"><span className="metric-icon metric-blue"><ClipboardCheck size={17}/></span><span className="metric-trend">Bookings</span></div><div className="metric-value">{recent.length}</div><div className="metric-label">Recent orders loaded</div></div>
+        <div className="metric-card"><div className="metric-card-top"><span className="metric-icon metric-amber"><Clock3 size={17}/></span><span className="metric-trend">Owner review</span></div><div className="metric-value">{pendingResult.count ?? 0}</div><div className="metric-label">Pending approvals</div></div>
+        <div className="metric-card"><div className="metric-card-top"><span className="metric-icon metric-rose"><ShieldAlert size={17}/></span><span className="metric-trend">Stock alert</span></div><div className="metric-value">{lowStock.length}</div><div className="metric-label">Products with no available stock</div></div>
+      </div>
+      <div className="module-grid">
+        <Link href="/bookings" className="module-card module-card-active"><div className="module-card-top"><span className="module-icon module-blue"><ClipboardCheck size={19}/></span><span className="module-tag module-tag-active">ACTIVE</span></div><h3>Bookings</h3><p>Create shop orders and monitor their approval status.</p><div className="module-card-bottom"><span>Open bookings</span><span className="module-arrow"><ArrowRight size={16}/></span></div></Link>
+        <Link href="/inventory" className="module-card module-card-active"><div className="module-card-top"><span className="module-icon module-green"><Warehouse size={19}/></span><span className="module-tag module-tag-active">ACTIVE</span></div><h3>Stock & warehouse</h3><p>Review stock levels and record permitted warehouse activity.</p><div className="module-card-bottom"><span>Open inventory</span><span className="module-arrow"><ArrowRight size={16}/></span></div></Link>
+        <Link href="/sales" className="module-card module-card-active"><div className="module-card-top"><span className="module-icon module-pink"><CreditCard size={19}/></span><span className="module-tag module-tag-active">ACTIVE</span></div><h3>Sales & recovery</h3><p>Follow invoices, receipts and assigned recovery work.</p><div className="module-card-bottom"><span>Open sales</span><span className="module-arrow"><ArrowRight size={16}/></span></div></Link>
+      </div>
+      <section className="panel recent-panel"><div className="panel-heading"><div><h2>Recent bookings</h2><p>Company-wide order activity.</p></div><Link className="inline-link" href="/bookings">View all <ArrowRight size={14}/></Link></div><div className="recent-list">{recent.map(row => <Link className="recent-row" href={`/bookings/${row.id}`} key={row.id}><span className="recent-icon"><ClipboardCheck size={17}/></span><span className="recent-copy"><strong>{row.booking_no}</strong><small>{row.customers?.[0]?.name ?? "Shop"} · {row.booking_date}</small></span><span className={`status-text status-text-${row.status}`}>{row.status.replaceAll("_"," ")}</span><ArrowRight size={15}/></Link>)}</div></section>
+    </div>;
+  }
+
+  if (!["owner", "admin"].includes(role)) {
+    return <div className="page-stack"><h1>Workspace access</h1><p>Your assigned role does not have access to the Owner, Manager, or Employee app features.</p></div>;
+  }
+
   const today = localDate();
   const [summaryResult, { data: recentBookings }] = await Promise.all([
     supabase.rpc("supplyos_dashboard_summary", { p_month_start: startOfMonth(), p_today: today }),
@@ -107,7 +162,7 @@ export default async function DashboardPage() {
     <div className="section-heading-row module-section-heading"><div><div className="eyebrow">YOUR WORKSPACE</div><h2>Operations modules</h2><p>Open a module to work with its dedicated tools and records.</p></div><span className="module-count-label">7 MODULES</span></div>
     <div className="module-grid">{modules.map((module, index) => { const Icon = module.icon; return <Link href={module.href} key={module.href} className={`module-card ${module.active ? "module-card-active" : "module-card-planned"}`}><div className="module-card-top"><span className={`module-icon ${module.color}`}><Icon size={19}/></span><span className={`module-tag ${module.active ? "module-tag-active" : ""}`}>{module.active && <i/>}{module.tag}</span></div><h3>{module.title}</h3><p>{module.description}</p><div className="module-card-bottom"><span>{module.active ? "Open module" : "View roadmap"}</span><span className="module-arrow"><ArrowRight size={16}/></span></div><span className="module-card-number">0{index + 1}</span></Link>; })}</div>
 
-    <div className="bottom-summary-grid"><section className="panel recent-panel"><div className="panel-heading"><div><h2>Recent bookings</h2><p>Most recent updates in your order pipeline.</p></div><Link className="inline-link" href="/bookings">View all <ArrowRight size={14}/></Link></div><div className="recent-list">{recent.map(b => <Link className="recent-row" href="/bookings" key={b.id}><span className="recent-icon"><ClipboardCheck size={17}/></span><span className="recent-copy"><strong>{b.booking_no}</strong><small>{b.customers?.[0]?.name ?? "Customer"} · {b.city || "No city"}</small></span><span className="recent-amount"><strong>{money(Number(b.total_amount ?? 0))}</strong><span className={`status-text status-text-${b.status}`}>{({pending_approval:"Pending approval",approved:"Approved",cancelled:"Cancelled",rejected:"Rejected",completed:"Completed",remade:"Remade"} as Record<string,string>)[b.status] ?? b.status}</span></span><ArrowRight size={15} className="recent-arrow"/></Link>)}{!recent.length && <div className="empty-inline"><span><ClipboardCheck size={18}/></span><div><strong>No bookings yet</strong><p>Once you create your first booking, it will appear here.</p></div><Link href="/bookings/new" className="button button-small button-primary">Create booking</Link></div>}</div></section><section className="panel quick-panel"><div className="panel-heading"><div><h2>Quick actions</h2><p>Shortcuts for daily operations.</p></div><span className="panel-heading-icon"><BriefcaseBusiness size={17}/></span></div><div className="quick-action-list"><Link href="/bookings/new" className="quick-action"><span className="quick-action-icon quick-blue"><Plus size={18}/></span><span><strong>Create a booking</strong><small>Enter a new customer order</small></span><ArrowRight size={15}/></Link><Link href="/customers" className="quick-action"><span className="quick-action-icon quick-violet"><Users size={18}/></span><span><strong>Add a customer</strong><small>Set credit limit and score</small></span><ArrowRight size={15}/></Link><Link href="/inventory" className="quick-action"><span className="quick-action-icon quick-green"><Boxes size={18}/></span><span><strong>Update inventory</strong><small>Product stock, cost, and pricing</small></span><ArrowRight size={15}/></Link><div className="quick-action quick-action-static"><span className="quick-action-icon quick-orange"><BarChartPlaceholder/></span><span><strong>Monthly approved value</strong><small>{money(approvedValue)} approved or completed</small></span><span className="quick-value">{cancelledValue ? `${money(cancelledValue)} cancelled` : "No cancellations"}</span></div></div></section></div>
+    <div className="bottom-summary-grid"><section className="panel recent-panel"><div className="panel-heading"><div><h2>Recent bookings</h2><p>Most recent updates in your order pipeline.</p></div><Link className="inline-link" href="/bookings">View all <ArrowRight size={14}/></Link></div><div className="recent-list">{recent.map(b => <Link className="recent-row" href="/bookings" key={b.id}><span className="recent-icon"><ClipboardCheck size={17}/></span><span className="recent-copy"><strong>{b.booking_no}</strong><small>{b.customers?.[0]?.name ?? "Customer"} · {b.city || "No city"}</small></span><span className="recent-amount"><strong>{money(Number(b.total_amount ?? 0))}</strong><span className={`status-text status-text-${b.status}`}>{({pending_approval:"Pending approval",approved:"Approved",cancelled:"Cancelled",rejected:"Rejected",completed:"Completed",remade:"Remade"} as Record<string,string>)[b.status] ?? b.status}</span></span><ArrowRight size={15} className="recent-arrow"/></Link>)}{!recent.length && <div className="empty-inline"><span><ClipboardCheck size={18}/></span><div><strong>No bookings yet</strong><p>Once you create your first booking, it will appear here.</p></div><Link href="/bookings/new" className="button button-small button-primary">Create booking</Link></div>}</div></section><section className="panel quick-panel"><div className="panel-heading"><div><h2>Quick actions</h2><p>Shortcuts for daily operations.</p></div><span className="panel-heading-icon"><BriefcaseBusiness size={17}/></span></div><div className="quick-action-list"><Link href="/bookings/new" className="quick-action"><span className="quick-action-icon quick-blue"><Plus size={18}/></span><span><strong>Create a booking</strong><small>Enter a new customer order</small></span><ArrowRight size={15}/></Link><Link href="/team-location" className="quick-action"><span className="quick-action-icon quick-violet"><MapPinned size={18}/></span><span><strong>View team locations</strong><small>See active manager and employee shifts</small></span><ArrowRight size={15}/></Link><Link href="/inventory" className="quick-action"><span className="quick-action-icon quick-green"><Boxes size={18}/></span><span><strong>Update inventory</strong><small>Product stock, cost, and pricing</small></span><ArrowRight size={15}/></Link><div className="quick-action quick-action-static"><span className="quick-action-icon quick-orange"><BarChartPlaceholder/></span><span><strong>Monthly approved value</strong><small>{money(approvedValue)} approved or completed</small></span><span className="quick-value">{cancelledValue ? `${money(cancelledValue)} cancelled` : "No cancellations"}</span></div></div></section></div>
   </div>;
 }
 

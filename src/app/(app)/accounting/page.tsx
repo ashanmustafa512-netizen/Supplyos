@@ -38,6 +38,7 @@ export default async function AccountingPage({ searchParams }: { searchParams: P
   const expenseBudget = Number(goalsR.data?.monthly_expense_budget ?? 0);
   const revenueProgress = revenueGoal > 0 ? Math.min(100, Math.round(revenue / revenueGoal * 100)) : 0;
   const expenseProgress = expenseBudget > 0 ? Math.min(100, Math.round(ledgerExpenses / expenseBudget * 100)) : 0;
+  const canEditGoals = ["owner", "admin"].includes(String(membership.role).toLowerCase());
   const trend = rows(summary.monthly_trend);
   const revenue = Number(summary.ledger_revenue ?? 0);
   const ledgerExpenses = Number(summary.ledger_expenses ?? 0);
@@ -63,7 +64,7 @@ export default async function AccountingPage({ searchParams }: { searchParams: P
         <div className="metric-card"><div className="metric-card-top"><span className="metric-icon metric-green"><ArrowUpRight size={17}/></span><span className="metric-trend">Revenue target</span></div><div className="metric-value metric-value-small">{money(revenueGoal)}</div><div className="metric-label">Actual {money(revenue)} · {revenueGoal > 0 ? `${revenueProgress}% reached` : "No target set"}</div><div className="score-progress"><span style={{width:`${revenueProgress}%`}}/></div></div>
         <div className="metric-card"><div className="metric-card-top"><span className="metric-icon metric-amber"><ArrowDownRight size={17}/></span><span className="metric-trend">Expense ceiling</span></div><div className="metric-value metric-value-small">{money(expenseBudget)}</div><div className="metric-label">Actual {money(ledgerExpenses)} · {expenseBudget > 0 ? `${expenseProgress}% of budget used` : "No budget set"}</div><div className="score-progress"><span style={{width:`${expenseProgress}%`}}/></div></div>
       </div>
-      <form action={saveFinancialGoals} className="compact-form"><div className="form-grid form-grid-two"><Field label="Monthly revenue goal (PKR)" name="monthly_revenue_goal" type="number" min="0" step="1000" defaultValue={revenueGoal} required/><Field label="Monthly expense budget (PKR)" name="monthly_expense_budget" type="number" min="0" step="1000" defaultValue={expenseBudget} required/></div><button className="button button-secondary" type="submit">Save monthly goals</button></form>
+      {canEditGoals && <form action={saveFinancialGoals} className="compact-form"><div className="form-grid form-grid-two"><Field label="Monthly revenue goal (PKR)" name="monthly_revenue_goal" type="number" min="0" step="1000" defaultValue={revenueGoal} required/><Field label="Monthly expense budget (PKR)" name="monthly_expense_budget" type="number" min="0" step="1000" defaultValue={expenseBudget} required/></div><button className="button button-secondary" type="submit">Save monthly goals</button></form>}
     </section>
     <div className="metric-grid metric-grid-five">
       <div className="metric-card"><div className="metric-card-top"><span className="metric-icon metric-blue"><FileBarChart size={17} /></span></div><div className="metric-value metric-value-small">{money(summary.open_receivables ?? 0)}</div><div className="metric-label">Accounts receivable</div><div className="metric-subtext">Open customer invoice balances</div></div>

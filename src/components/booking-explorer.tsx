@@ -63,7 +63,7 @@ export function BookingExplorer({ bookings, role }: { bookings: BookingRow[]; ro
     const haystack = [booking.booking_no, booking.customers?.name, booking.customers?.customer_code, booking.city, booking.region, ...booking.booking_items.map(item => item.products?.name)].join(" ").toLowerCase();
     return matchesStatus
       && haystack.includes(search.toLowerCase().trim())
-      && (region === "all" || booking.region.trim() === region)
+      && (region === "all" || (booking.region ?? "").trim() === region)
       && (city === "all" || (booking.city ?? "").trim() === city);
   }), [rows, city, region, search, status]);
 
@@ -108,11 +108,11 @@ export function BookingExplorer({ bookings, role }: { bookings: BookingRow[]; ro
           <div className="booking-filter-row">
             <label className="booking-filter"><span>Region</span><select aria-label="Filter by region" value={region} onChange={event => { setRegion(event.target.value); setCity("all"); setFiltersChanged(); }}><option value="all">All regions</option>{regions.map(value => <option value={value} key={value}>{value}</option>)}</select></label>
             <label className="booking-filter"><span>City</span><select aria-label="Filter by city" value={city} onChange={event => { setCity(event.target.value); setFiltersChanged(); }}><option value="all">All cities</option>{cities.map(value => <option value={value} key={value}>{value}</option>)}</select></label>
-            {!isEmployee && <span className="booking-filter-hint">Region and city filters; bulk approval supports up to 100 orders per batch.</span>}
+            {canApprove && <span className="booking-filter-hint">Region and city filters; bulk approval supports up to 100 orders per batch.</span>}
           </div>
         </div>
 
-        <div className="status-tabs" role="tablist" aria-label="Filter bookings by status">{statusTabs.map(tab => <button type="button" role="tab" aria-selected={status === tab.key} className={`status-tab ${status === tab.key ? "status-tab-active" : ""}`} key={tab.key} onClick={() => { setFiltersChanged(); setStatus(tab.key); }}>{tab.label}<span>{counts[tab.key] ?? 0}</span></button>)}</div>
+        <div className="status-tabs" role="tablist" aria-label="Filter bookings by status">{statusTabs.map(tab => <button type="button" role="tab" aria-selected={status === tab.key} className={`status-tab ${status === tab.key ? "status-tab-active" : ""}`} key={tab.key} onClick={() => { setFiltersChanged(); setStatus(tab.key); }}>{tab.key === "pending_approval" && role === "manager" ? "Awaiting owner" : tab.label}<span>{counts[tab.key] ?? 0}</span></button>)}</div>
 
         {canApprove && visiblePending.length > 0 && <div className="bulk-approval-bar">
           <label className="select-visible-pending"><input type="checkbox" checked={allVisibleSelected} onChange={event => toggleVisiblePending(event.target.checked)}/><span>Select up to 100 visible pending</span></label>
@@ -126,19 +126,20 @@ export function BookingExplorer({ bookings, role }: { bookings: BookingRow[]; ro
         {bulkNotice && <div className={`dispatch-inline-status ${bulkNotice.ok ? "success" : "error"}`} role="status"><span>{bulkNotice.ok ? <Check size={16}/> : <CircleX size={16}/>}</span><span>{bulkNotice.text}</span><button type="button" className="icon-button" aria-label="Dismiss notice" onClick={() => setBulkNotice(null)}><CircleX size={15}/></button></div>}
         {canApprove && selectedVisibleCount > 0 && <p className="bulk-approval-note"><ShieldCheck size={14}/> Each order is checked against customer credit and available stock. Orders that fail a check remain pending approval.</p>}
 
-        <div className="table-scroll"><table className="data-table"><thead><tr>{!isEmployee && <th className="select-column">Select</th>}<th>Booking</th><th>Shop / destination</th><th>Order value</th>{!isEmployee && <><th>Cost & margin</th><th>Credit score</th></>}<th>Status</th><th>Actions</th></tr></thead><tbody>
+        <div className="table-scroll"><table className="data-table"><thead><tr>{canApprove && <th className="select-column">Select</th>}<th>Booking</th><th>Shop / destination</th><th>Order value</th>{!isEmployee && <><th>Cost & margin</th><th>Credit score</th></>}<th>Status</th><th>Actions</th></tr></thead><tbody>
           {filtered.map(booking => {
             const amount = Number(booking.total_amount ?? 0);
             const cost = Number(booking.total_cost ?? 0);
             const profit = Number(booking.profit ?? (amount - cost));
+            const score = Number(booking.score_snapshot ?? 0);
             const firstItem = booking.booking_items?.[0];
             return <tr key={booking.id}>
-              {!isEmployee && <td className="select-column">{booking.status === "pending_approval" && canApprove ? <input type="checkbox" aria-label={`Select ${booking.booking_no} for bulk approval`} checked={selectedIds.includes(booking.id)} disabled={selectedIds.length >= 100 && !selectedIds.includes(booking.id)} onChange={event => toggleSelected(booking.id, event.target.checked)}/> : <span className="not-selectable">—</span>}</td>}
+              {canApprove && <td className="select-column">{booking.status === "pending_approval" ? <input type="checkbox" aria-label={`Select ${booking.booking_no} for bulk approval`} checked={selectedIds.includes(booking.id)} disabled={selectedIds.length >= 100 && !selectedIds.includes(booking.id)} onChange={event => toggleSelected(booking.id, event.target.checked)}/> : <span className="not-selectable">—</span>}</td>}
               <td><div className="booking-primary"><span className="booking-ref">{booking.booking_no}</span><span className="booking-date">{new Intl.DateTimeFormat("en-PK", { day: "2-digit", month: "short", year: "numeric" }).format(new Date(`${booking.booking_date.slice(0, 10)}T12:00:00`))}</span></div></td>
               <td><div className="customer-primary"><span className="customer-avatar">{(booking.customers?.name?.[0] || "C").toUpperCase()}</span><span><strong>{booking.customers?.name ?? "Unknown customer"}</strong><small>{booking.customers?.customer_code ?? "—"} · {[booking.city, booking.region].filter(Boolean).join(", ") || "No destination"}</small>{firstItem && <small className="item-line">{firstItem.products?.name ?? "Product"} · qty {firstItem.quantity}</small>}</span></div></td>
               <td><span className="money-primary">{money(amount)}</span><small className="table-muted">incl. all listed items</small></td>
               {!isEmployee && <><td><span className="money-primary">{money(cost)}</span><small className={profit >= 0 ? "profit-label" : "loss-label"}>{profit >= 0 ? "+" : ""}{money(profit)} profit</small></td>
-              <td><div className="score-wrap"><div className="score-line"><span>{booking.score_snapshot}/100</span><span className="score-track"><i style={{ width: `${Math.min(100, Math.max(0, booking.score_snapshot))}%` }}/></span></div></div></td></>}
+              <td><div className="score-wrap"><div className="score-line"><span>{score}/100</span><span className="score-track"><i style={{ width: `${Math.min(100, Math.max(0, score))}%` }}/></span></div></div></td></>}
               <td><span className={`status-pill status-${booking.status}`}><i/>{statusLabels[booking.status] ?? booking.status}</span></td>
               <td><div className="row-actions">
                 {booking.status === "pending_approval" && canApprove && <>
@@ -151,7 +152,7 @@ export function BookingExplorer({ bookings, role }: { bookings: BookingRow[]; ro
               </div></td>
             </tr>;
           })}
-          {filtered.length === 0 && <tr><td colSpan={isEmployee ? 5 : 8}><div className="empty-table"><div className="empty-table-icon"><Search size={20}/></div><strong>{rows.length ? "No bookings match these filters" : "Your booking queue is clear"}</strong><p>{rows.length ? "Try another status, region, city, or search term." : "Create your first shop order. Ask the owner or manager to add any missing shop or product."}</p>{!rows.length && <Link href="/bookings/new" className="button button-primary button-small">Create first booking</Link>}</div></td></tr>}
+          {filtered.length === 0 && <tr><td colSpan={canApprove ? 8 : isEmployee ? 5 : 7}><div className="empty-table"><div className="empty-table-icon"><Search size={20}/></div><strong>{rows.length ? "No bookings match these filters" : "Your booking queue is clear"}</strong><p>{rows.length ? "Try another status, region, city, or search term." : "Create your first shop order. Ask the owner or manager to add any missing shop or product."}</p>{!rows.length && <Link href="/bookings/new" className="button button-primary button-small">Create first booking</Link>}</div></td></tr>}
         </tbody></table></div>
         <div className="table-footer"><span>Showing {filtered.length} of {rows.length} recent bookings</span><span><i className="legend-dot legend-green"/> Approval checks enabled <ShieldCheck size={14}/></span></div>
       </section>

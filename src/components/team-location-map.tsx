@@ -109,11 +109,17 @@ export function TeamLocationMap({
         if (error) throw error;
         if (!mountedRef.current) return;
         const rows = (data ?? []) as unknown as Array<Record<string, unknown>>;
+        const userIds = [...new Set(rows.map(row => String(row.user_id)))];
+        const { data: membershipRows } = userIds.length
+          ? await supabase.from("memberships").select("user_id,role").eq("organization_id", organizationId).in("user_id", userIds)
+          : { data: [] as Array<{ user_id: string; role: string }> };
+        const roleByUser = new Map((membershipRows ?? []).map(row => [row.user_id, row.role]));
+        if (!mountedRef.current) return;
         setLocations(rows.map(row => ({
           id: String(row.id),
           userId: String(row.user_id),
           name: String(row.employee_name ?? "Team member"),
-          role: "staff",
+          role: roleByUser.get(String(row.user_id)) ?? "staff",
           latitude: row.current_latitude == null ? null : Number(row.current_latitude),
           longitude: row.current_longitude == null ? null : Number(row.current_longitude),
           lastLocationAt: row.last_location_at == null ? null : String(row.last_location_at),

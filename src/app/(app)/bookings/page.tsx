@@ -23,17 +23,20 @@ export default async function BookingsPage({ searchParams }: { searchParams: Sea
   const month = monthParts.find(part => part.type === "month")?.value ?? "01";
   const monthStart = `${year}-${month}-01`;
   const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Karachi", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
-  const [{ data, error }, summaryResult] = await Promise.all([
-    supabase.from("bookings")
-      .select("id, booking_no, booking_date, status, total_amount, total_cost, profit, score_snapshot, city, region, notes, created_at, customers(name, customer_code), booking_items(quantity, products(name, sku))")
-      .order("created_at", { ascending: false })
-      .limit(500),
+  const [bookingResult, summaryResult] = await Promise.all([
+    isEmployee
+      ? supabase.rpc("get_my_bookings")
+      : supabase.from("bookings")
+          .select("id, booking_no, booking_date, status, total_amount, total_cost, profit, score_snapshot, city, region, notes, created_at, customers(name, customer_code), booking_items(quantity, products(name, sku))")
+          .order("created_at", { ascending: false })
+          .limit(500),
     isEmployee
       ? Promise.resolve({ data: null, error: null })
       : supabase.rpc("supplyos_dashboard_summary", { p_month_start: monthStart, p_today: today }),
   ]);
-
-  const bookings = (data ?? []) as unknown as BookingRow[];
+  const data = bookingResult.data as unknown as BookingRow[] | null;
+  const error = bookingResult.error;
+  const bookings = (data ?? []) as BookingRow[];
   type BookingSummary = {
     order_count?: number; approved_count?: number; approved_value?: number | string;
     cancelled_value?: number | string; total_value?: number | string;

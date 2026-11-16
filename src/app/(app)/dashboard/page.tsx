@@ -3,7 +3,7 @@ import Link from "next/link";
 import {
   ArrowRight, ArrowUpRight, Boxes, BriefcaseBusiness, Calculator, CheckCircle2,
   ClipboardCheck, Clock3, CreditCard, Factory, MapPinned, PackageCheck, Plus,
-  ShieldAlert, Truck, Users, Wallet, Warehouse,
+  ShieldAlert, Users, Wallet, Warehouse,
 } from "lucide-react";
 import { getWorkspace, requireUser } from "@/lib/server-auth";
 import { isOwnerOrAdmin } from "@/lib/access";

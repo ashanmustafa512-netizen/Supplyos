@@ -35,3 +35,20 @@ export async function postManualJournal(f: FormData) {
   if (error) back("error", error.message);
   revalidatePath("/accounting"); back("success", "Balanced manual journal posted to the ledger.");
 }
+
+export async function saveFinancialGoals(f: FormData) {
+  const revenueGoal = Number(f.get("monthly_revenue_goal"));
+  const expenseBudget = Number(f.get("monthly_expense_budget"));
+  if (!Number.isFinite(revenueGoal) || revenueGoal < 0 || !Number.isFinite(expenseBudget) || expenseBudget < 0) {
+    back("error", "Enter non-negative monthly revenue and expense targets.");
+  }
+  const supabase = await requireFinanceRole();
+  const { error } = await supabase.rpc("set_financial_goals", {
+    p_monthly_revenue_goal: revenueGoal,
+    p_monthly_expense_budget: expenseBudget,
+  });
+  if (error) back("error", error.message);
+  revalidatePath("/accounting");
+  revalidatePath("/dashboard");
+  back("success", "Monthly financial goals saved.");
+}

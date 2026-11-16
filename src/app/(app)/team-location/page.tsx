@@ -15,7 +15,7 @@ export default async function TeamLocationPage() {
 
   const [sessionsResult, factoryResult] = await Promise.all([
     supabase.from("employee_location_sessions")
-      .select("id,user_id,employee_name,current_latitude,current_longitude,last_location_at,current_location_accuracy_m,factory_distance_m,factory_geofence_state,started_at")
+      .select("id,user_id,employee_name,role_snapshot,current_latitude,current_longitude,last_location_at,current_location_accuracy_m,factory_distance_m,factory_geofence_state,started_at")
       .eq("organization_id", organization.id)
       .is("ended_at", null)
       .order("last_location_at", { ascending: false })
@@ -27,17 +27,11 @@ export default async function TeamLocationPage() {
   ]);
 
   const rawSessions = (sessionsResult.data ?? []) as unknown as Array<Record<string, unknown>>;
-  const userIds = [...new Set(rawSessions.map(row => String(row.user_id)))];
-  const { data: memberships } = userIds.length
-    ? await supabase.from("memberships").select("user_id,role").eq("organization_id", organization.id).in("user_id", userIds)
-    : { data: [] as Array<{user_id:string;role:string}> };
-  const roleByUser = new Map<string, string>((memberships ?? []).map(item => [item.user_id, item.role] as const));
-
   const locations: TeamLocation[] = rawSessions.map(row => ({
     id: String(row.id),
     userId: String(row.user_id),
     name: String(row.employee_name ?? "Team member"),
-    role: roleByUser.get(String(row.user_id)) ?? "staff",
+    role: String(row.role_snapshot ?? "staff"),
     latitude: row.current_latitude == null ? null : Number(row.current_latitude),
     longitude: row.current_longitude == null ? null : Number(row.current_longitude),
     lastLocationAt: row.last_location_at == null ? null : String(row.last_location_at),

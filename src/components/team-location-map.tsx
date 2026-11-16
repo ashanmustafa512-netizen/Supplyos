@@ -102,7 +102,7 @@ export function TeamLocationMap({
       try {
         const { data, error } = await supabase
           .from("employee_location_sessions")
-          .select("id,user_id,employee_name,current_latitude,current_longitude,last_location_at,current_location_accuracy_m,factory_distance_m,factory_geofence_state,started_at")
+          .select("id,user_id,employee_name,role_snapshot,current_latitude,current_longitude,last_location_at,current_location_accuracy_m,factory_distance_m,factory_geofence_state,started_at")
           .eq("organization_id", organizationId)
           .is("ended_at", null)
           .order("last_location_at", { ascending: false })
@@ -110,17 +110,12 @@ export function TeamLocationMap({
         if (error) throw error;
         if (!mountedRef.current) return;
         const rows = (data ?? []) as unknown as Array<Record<string, unknown>>;
-        const userIds = [...new Set(rows.map(row => String(row.user_id)))];
-        const { data: membershipRows } = userIds.length
-          ? await supabase.from("memberships").select("user_id,role").eq("organization_id", organizationId).in("user_id", userIds)
-          : { data: [] as Array<{ user_id: string; role: string }> };
-        const roleByUser = new Map<string, string>((membershipRows ?? []).map(row => [row.user_id, row.role] as const));
         if (!mountedRef.current) return;
         setLocations(rows.map(row => ({
           id: String(row.id),
           userId: String(row.user_id),
           name: String(row.employee_name ?? "Team member"),
-          role: roleByUser.get(String(row.user_id)) ?? "staff",
+          role: String(row.role_snapshot ?? "staff"),
           latitude: row.current_latitude == null ? null : Number(row.current_latitude),
           longitude: row.current_longitude == null ? null : Number(row.current_longitude),
           lastLocationAt: row.last_location_at == null ? null : String(row.last_location_at),

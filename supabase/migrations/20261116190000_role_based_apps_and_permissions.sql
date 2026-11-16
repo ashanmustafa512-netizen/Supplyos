@@ -360,6 +360,58 @@ begin
       );
     end if;
 
+    -- Exact replacements cover the compact SQL formatting used by older RPCs.
+    -- Keep these alongside the whitespace-tolerant patterns above.
+    if v_function.proname in (
+      'add_payroll_employee', 'create_monthly_payroll_run', 'update_payroll_employee',
+      'update_payroll_item', 'payroll_run_action'
+    ) then
+      v_definition := replace(v_definition,
+        'role in (''owner'',''admin'',''manager'',''accountant'')',
+        'role in (''owner'',''admin'')');
+    end if;
+
+    if v_function.proname in ('create_manual_journal', 'finance_dashboard_summary') then
+      v_definition := replace(v_definition,
+        'role in (''owner'',''admin'',''manager'',''accountant'')',
+        'role in (''owner'',''admin'',''accountant'')');
+    elsif v_function.proname in ('record_finance_expense', 'record_other_income') then
+      v_definition := replace(v_definition,
+        'role in (''owner'',''admin'',''accountant'',''manager'')',
+        'role in (''owner'',''admin'',''accountant'')');
+      v_definition := replace(v_definition,
+        'role in (''owner'',''admin'',''manager'',''accountant'')',
+        'role in (''owner'',''admin'',''accountant'')');
+    end if;
+
+    if v_function.proname in (
+      'save_stock_product', 'adjust_stock_balance', 'create_stock_supplier',
+      'create_stock_warehouse', 'create_stock_purchase_order',
+      'create_stock_purchase_order_multi', 'receive_stock_purchase_order',
+      'receive_stock_purchase_order_multi'
+    ) then
+      v_definition := replace(v_definition,
+        'role in (''owner'',''admin'',''manager'',''staff'')',
+        'role in (''owner'',''admin'',''manager'')');
+    end if;
+
+    if v_function.proname in (
+      'issue_sales_invoice', 'record_sales_payment',
+      'create_sales_recovery_task', 'update_sales_recovery_task'
+    ) then
+      v_definition := replace(v_definition,
+        'role in (''owner'',''admin'',''manager'',''accountant'',''staff'')',
+        'role in (''owner'',''admin'',''manager'',''accountant'')');
+    end if;
+
+    -- Handle both common compact lookup forms as well as the regex form below.
+    v_definition := replace(v_definition,
+      'select organization_id into v_org_id from public.memberships where user_id=v_user_id limit 1;',
+      'v_org_id := public.supplyos_current_organization_id();');
+    v_definition := replace(v_definition,
+      'select m.organization_id into v_org_id from public.memberships m where m.user_id=v_user_id limit 1;',
+      'v_org_id := public.supplyos_current_organization_id();');
+
     -- All RPCs using the old LIMIT 1 organization lookup now fail closed if
     -- the signed-in account has multiple workspace memberships.
     v_definition := regexp_replace(

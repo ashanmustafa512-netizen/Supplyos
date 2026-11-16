@@ -86,6 +86,18 @@ export default function App() {
       return;
     }
 
+    const { data: membership } = await supabase.from("memberships")
+      .select("role").eq("user_id", session.user.id)
+      .order("created_at", { ascending: true }).limit(1).maybeSingle();
+    if (membership?.role !== "staff") {
+      await supabase.auth.signOut();
+      setSignedIn(false);
+      setActiveShift(null);
+      setTrackingReady(false);
+      setMessage("This is the Employee app. Please sign in with a staff account; managers should use the Manager app.");
+      return;
+    }
+
     const { data: shiftRows, error } = await supabase
       .from("employee_location_sessions")
       .select("id,employee_name,started_at")
@@ -107,6 +119,7 @@ export default function App() {
         setMessage(e instanceof Error ? e.message : "Location permission is required to continue.");
       }
     } else {
+      await stopNativeLocationUpdates();
       await AsyncStorage.removeItem(SHIFT_SESSION_KEY);
       setActiveShift(null);
       setTrackingReady(false);

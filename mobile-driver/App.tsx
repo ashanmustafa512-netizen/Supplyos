@@ -33,6 +33,7 @@ export default function App() {
       await AsyncStorage.setItem(SHIFT_SESSION_KEY, row.id);
       setActiveShift({ session_id: row.id, employee_name: row.employee_name, started_at: row.started_at });
     } else {
+      await stopNativeLocationUpdates();
       await AsyncStorage.removeItem(SHIFT_SESSION_KEY);
       setActiveShift(null);
       setTracking(false);

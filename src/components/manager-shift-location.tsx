@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { MapPinned, ShieldCheck } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
@@ -9,7 +9,11 @@ type ShiftSession = { id: string; started_at: string };
 const CONSENT_VERSION = "supplyos-manager-work-shift-location-consent-v1";
 
 export function ManagerShiftLocation() {
-  const supabase = useMemo(() => createClient(), []);
+  const supabaseRef = useRef<ReturnType<typeof createClient> | null>(null);
+  const getSupabase = useCallback(() => {
+    if (!supabaseRef.current) supabaseRef.current = createClient();
+    return supabaseRef.current;
+  }, []);
   const [session, setSession] = useState<ShiftSession | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -28,6 +32,7 @@ export function ManagerShiftLocation() {
 
   const recordPosition = useCallback(async (sessionId: string, position: GeolocationPosition) => {
     const { latitude, longitude, accuracy } = position.coords;
+    const supabase = getSupabase();
     const { error } = await supabase.rpc("record_employee_location", {
       p_session_id: sessionId,
       p_latitude: latitude,
@@ -46,7 +51,7 @@ export function ManagerShiftLocation() {
     }
     setLastUpdate(new Date().toISOString());
     setMessage("Your manager work-shift location is being shared with the owner.");
-  }, [supabase, stopWatching]);
+  }, [getSupabase, stopWatching]);
 
   const beginWatching = useCallback((sessionId: string) => {
     if (!navigator.geolocation) {
@@ -75,6 +80,7 @@ export function ManagerShiftLocation() {
 
   useEffect(() => {
     let alive = true;
+    const supabase = getSupabase();
     const { data: authListener } = supabase.auth.onAuthStateChange(event => {
       if (event === "SIGNED_OUT") {
         stopWatching();
@@ -119,7 +125,7 @@ export function ManagerShiftLocation() {
       authListener.subscription.unsubscribe();
       stopWatching();
     };
-  }, [beginWatching, stopWatching, supabase]);
+  }, [beginWatching, getSupabase, stopWatching]);
 
   function requestCurrentPosition(): Promise<GeolocationPosition> {
     return new Promise((resolve, reject) => {
@@ -142,6 +148,7 @@ export function ManagerShiftLocation() {
     setMessage("Requesting location permission…");
     try {
       const position = await requestCurrentPosition();
+      const supabase = getSupabase();
       const { data, error } = await supabase.rpc("start_employee_location_shift", {
         p_consent_version: CONSENT_VERSION,
       });
@@ -164,6 +171,7 @@ export function ManagerShiftLocation() {
     if (!currentId) return;
     setBusy(true);
     stopWatching();
+    const supabase = getSupabase();
     const { error } = await supabase.rpc("stop_employee_location_shift", {
       p_session_id: currentId,
       p_reason: "manager_stopped",

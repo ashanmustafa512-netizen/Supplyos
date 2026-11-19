@@ -5,7 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 import {
   Activity, Bell, Boxes, Building2, Calculator, ChevronDown, ChevronLeft,
-  ClipboardCheck, Command, CreditCard, Factory, LayoutDashboard, LogOut,
+  ClipboardCheck, Command, CreditCard, Factory, LayoutDashboard, LogOut, MailPlus,
   Menu, Wallet, type LucideIcon,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
@@ -24,6 +24,7 @@ const navItems: NavItem[] = [
   { label: "Overview", href: "/dashboard", icon: LayoutDashboard, section: "WORKSPACE", allowedRoles: [...ownerRoles, ...managerRoles] },
   { label: "My bookings", href: "/bookings", icon: ClipboardCheck, section: "WORKSPACE", allowedRoles: employeeRoles },
   { label: "Bookings & approvals", href: "/bookings", icon: ClipboardCheck, section: "OPERATIONS", badge: "Core", allowedRoles: [...ownerRoles, ...managerRoles] },
+  { label: "Team accounts", href: "/team/access", icon: MailPlus, section: "OPERATIONS", allowedRoles: ownerRoles },
   { label: "Team live locations", href: "/team", icon: Activity, section: "OPERATIONS", allowedRoles: ownerRoles },
   { label: "Stock & warehouse", href: "/inventory", icon: Boxes, section: "OPERATIONS", allowedRoles: [...ownerRoles, ...managerRoles] },
   { label: "Sales & recovery", href: "/sales", icon: CreditCard, section: "BUSINESS", allowedRoles: [...ownerRoles, ...managerRoles, ...accountantRoles] },

@@ -7,6 +7,10 @@ on:
     branches: [feature/role-based-apps]
   workflow_dispatch:
 
+concurrency:
+  group: supplyos-role-based-checks-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 

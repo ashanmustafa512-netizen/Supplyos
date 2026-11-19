@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { BriefcaseBusiness, CheckCircle2, ClipboardList, Copy, LoaderCircle, MailPlus, RefreshCw, ShieldCheck, Users } from "lucide-react";
 
@@ -38,7 +38,7 @@ export function TeamAccessManager() {
 
   useEffect(() => { void loadUsers(); }, [loadUsers]);
 
-  async function createLogin(event: React.FormEvent<HTMLFormElement>) {
+  async function createLogin(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
     setSuccess("");

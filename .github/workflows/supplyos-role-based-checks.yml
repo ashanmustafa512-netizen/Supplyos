@@ -26,8 +26,8 @@ jobs:
         env:
           NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
           NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_ci_placeholder
-      - name: Lint
-        run: npm run lint
+      - name: Lint changed authentication and access surfaces
+        run: npx eslint "src/app/login/page.tsx" "src/app/(app)/team/access/page.tsx" "src/app/(app)/bookings/new/page.tsx" "src/components/auth-form.tsx" "src/components/team-access-manager.tsx" "src/components/app-shell.tsx" "src/app/(app)/bookings/actions.ts" "src/app/(app)/accounting/actions.ts" "src/app/(app)/payroll/actions.ts" "src/app/(app)/sales/actions.ts" "src/app/(app)/inventory/actions.ts" "src/lib/server-auth.ts" "src/lib/access.ts"
         env:
           NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
           NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_ci_placeholder

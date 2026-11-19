@@ -155,3 +155,35 @@ html{scroll-behavior:smooth;text-size-adjust:100%}body{font-size:15px;text-rende
 @media(prefers-reduced-motion:reduce){.loading-skeleton{animation:none}}
 :root[data-theme="dark"] .loading-skeleton{background:linear-gradient(90deg,#1d2b40 25%,#293950 50%,#1d2b40 75%);background-size:200% 100%}
 .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+
+
+/* Role-select login */
+.auth-role-picker{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:-10px 0 21px}
+.auth-role-choice{display:flex;min-width:0;flex-direction:column;align-items:flex-start;gap:5px;padding:11px 10px;border:1px solid #e2e8f1;border-radius:11px;background:#fff;color:#53647a;text-align:left;transition:border-color .18s,background .18s,box-shadow .18s}
+.auth-role-choice:hover{border-color:#b9cbed;background:#f8faff}
+.auth-role-choice-active{border-color:#477bd7;background:#f0f5ff;box-shadow:inset 0 0 0 1px rgba(71,123,215,.13)}
+.auth-role-icon{display:grid;place-items:center;width:29px;height:29px;border-radius:8px;background:#eef3fb;color:#5479b3}
+.auth-role-choice-active .auth-role-icon{background:#dce8ff;color:#285cb7}
+.auth-role-choice strong{font-size:11px;color:#263a55}
+.auth-role-choice small{font-size:9px;color:#8794a6;line-height:1.35}
+.auth-role-note{margin:15px 0 0;color:#8a96a7;font-size:9px;line-height:1.6;text-align:center}
+@media(max-width:390px){.auth-role-picker{gap:5px}.auth-role-choice{padding:9px 7px}.auth-role-choice small{font-size:8px}}
+/* Owner team account management */
+.team-access-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px}
+.team-access-form-panel .team-access-form{padding:20px 21px}
+.team-access-form{display:flex;flex-direction:column;gap:16px}
+.team-access-form .field-label input,.team-access-form .field-label select{width:100%;min-height:40px;border:1px solid var(--line-strong,#dce4ed);border-radius:9px;padding:9px 11px;background:var(--surface,#fff);color:var(--ink,#263750);font-size:11px}
+.team-access-form .field-label input:focus,.team-access-form .field-label select:focus{outline:none;border-color:#82a5e8;box-shadow:0 0 0 3px rgba(71,122,221,.1)}
+.team-access-form-footer{display:flex;align-items:center;justify-content:space-between;gap:16px;padding-top:5px}
+.team-access-form-footer p{display:flex;align-items:center;gap:7px;max-width:540px;margin:0;color:#8794a5;font-size:10px;line-height:1.55}
+.team-access-form-footer p svg{flex-shrink:0;color:#4b8c76}
+.team-access-form-footer .button{flex-shrink:0}
+.team-role-chip{display:inline-flex;align-items:center;padding:5px 9px;border:1px solid #e2e8f0;border-radius:999px;background:#f7f9fc;color:#5e6d80;font-size:9px;font-weight:800}
+.team-role-manager{background:#f0f5ff;border-color:#dbe7ff;color:#3462ac}
+.team-role-employee{background:#edf8f3;border-color:#d5eee2;color:#287b5d}
+.team-role-owner{background:#f5f1ff;border-color:#e5ddfb;color:#6d52aa}
+.team-copy-button{display:inline-flex;align-items:center;gap:6px;border:1px solid #e1e7ef;border-radius:7px;background:white;color:#5d6c81;padding:6px 8px;font-size:9px;font-weight:700;white-space:nowrap}
+.team-copy-button:hover{background:#f6f8fc;color:#285ba8}
+.team-access-note{display:flex;align-items:center;gap:8px;padding:13px 20px;border-top:1px solid #edf1f5;color:#8592a4;font-size:10px;line-height:1.5}
+.team-access-note svg{flex-shrink:0;color:#4d8b76}
+@media(max-width:720px){.team-access-metrics{grid-template-columns:1fr 1fr}.team-access-metrics .metric-card:first-child{grid-column:1/-1}.team-access-form-footer{align-items:stretch;flex-direction:column}.team-access-form-footer .button{width:100%}.team-access-form-panel .team-access-form{padding:16px}}

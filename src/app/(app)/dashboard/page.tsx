@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import {
   ArrowRight, ArrowUpRight, Boxes, BriefcaseBusiness, Calculator, CheckCircle2,
-  ClipboardCheck, Clock3, CreditCard, Factory, MapPinned, PackageCheck, Plus,
+  ClipboardCheck, Clock3, CreditCard, Factory, MapPinned, PackageCheck, Plus, MailPlus,
   ShieldAlert, Users, Wallet, Warehouse,
 } from "lucide-react";
 import { getWorkspace, requireUser } from "@/lib/server-auth";
@@ -13,6 +13,7 @@ export const metadata: Metadata = { title: "Overview" };
 
 const modules = [
   { title: "Bookings", description: "Orders, approvals, and credit checks", href: "/bookings", icon: ClipboardCheck, color: "module-blue", tag: "CORE", active: true, ownerOnly: false },
+  { title: "Team accounts", description: "Create separate manager and employee logins", href: "/team/access", icon: MailPlus, color: "module-purple", tag: "ACCESS", active: true, ownerOnly: true },
   { title: "Team live locations", description: "See active employee and manager shifts", href: "/team", icon: MapPinned, color: "module-purple", tag: "LIVE", active: true, ownerOnly: true },
   { title: "Stock & warehouse", description: "Manage product masters and stock", href: "/inventory", icon: Warehouse, color: "module-green", tag: "ACTIVE", active: true, ownerOnly: false },
   { title: "Accounting", description: "Company expenses, profit and financial goals", href: "/accounting", icon: Calculator, color: "module-teal", tag: "ACTIVE", active: true, ownerOnly: true },

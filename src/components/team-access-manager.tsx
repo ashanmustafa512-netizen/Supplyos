@@ -20,7 +20,6 @@ export function TeamAccessManager() {
   const [copied, setCopied] = useState("");
 
   const loadUsers = useCallback(async () => {
-    setLoadingUsers(true);
     const supabase = createClient();
     const { data, error: invokeError } = await supabase.functions.invoke("manage-team-logins", {
       body: { action: "list" },
@@ -112,7 +111,7 @@ export function TeamAccessManager() {
       </section>
 
       <section className="panel">
-        <div className="panel-heading"><div><h2>Accounts in this workspace</h2><p>Each email signs in with its own password and the app assigned below.</p></div><button className="button button-secondary button-small" type="button" onClick={() => void loadUsers()} disabled={loadingUsers}><RefreshCw size={14}/> Refresh</button></div>
+        <div className="panel-heading"><div><h2>Accounts in this workspace</h2><p>Each email signs in with its own password and the app assigned below.</p></div><button className="button button-secondary button-small" type="button" onClick={() => { setLoadingUsers(true); void loadUsers(); }} disabled={loadingUsers}><RefreshCw size={14}/> Refresh</button></div>
         <div className="table-scroll">
           <table className="data-table team-access-table">
             <thead><tr><th>Team member</th><th>Login email</th><th>App access</th><th>Added</th><th/></tr></thead>

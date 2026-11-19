@@ -1,0 +1,58 @@
+name: SupplyOS role-based app checks
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [feature/role-based-apps]
+  workflow_dispatch:
+
+concurrency:
+  group: supplyos-role-based-checks-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  web:
+    name: Web typecheck, lint and build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Typecheck
+        run: npm run typecheck
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_ci_placeholder
+      - name: Lint changed authentication and access surfaces
+        run: npx eslint "src/app/login/page.tsx" "src/app/(app)/team/access/page.tsx" "src/app/(app)/bookings/new/page.tsx" "src/components/auth-form.tsx" "src/components/team-access-manager.tsx" "src/components/app-shell.tsx" "src/app/(app)/bookings/actions.ts" "src/app/(app)/accounting/actions.ts" "src/app/(app)/payroll/actions.ts" "src/app/(app)/sales/actions.ts" "src/app/(app)/inventory/actions.ts" "src/lib/server-auth.ts" "src/lib/access.ts"
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_ci_placeholder
+      - name: Build
+        run: npm run build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_ci_placeholder
+
+  mobile:
+    name: Android app TypeScript checks
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        app: [mobile-admin, mobile-driver]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-audit --no-fund
+        working-directory: ${{ matrix.app }}
+      - run: npm run typecheck
+        working-directory: ${{ matrix.app }}

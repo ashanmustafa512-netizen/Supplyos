@@ -1,18 +1,20 @@
 "use server";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { requireUser } from "@/lib/server-auth";
+import { getWorkspace, requireUser } from "@/lib/server-auth";
+import { canAccessAccounting, isOwnerOrAdmin } from "@/lib/access";
 const back=(key:"success"|"error",v:string):never=>redirect(`/accounting?${key}=${encodeURIComponent(v)}`);
 const s=(f:FormData,k:string)=>String(f.get(k)??"").trim();const n=(f:FormData,k:string)=>Number(f.get(k)??0);
-export async function addExpense(f:FormData){const amount=n(f,"amount");if(!(amount>0)||!Number.isFinite(amount)||!s(f,"description"))back("error","Enter a description and positive expense amount.");const {supabase}=await requireUser();const {error}=await supabase.rpc("record_finance_expense",{p_date:s(f,"expense_date")||null,p_expense_account_code:s(f,"expense_account_code"),p_paid_from_account_code:s(f,"paid_from_account_code"),p_amount:amount,p_description:s(f,"description"),p_vendor:s(f,"vendor"),p_payment_method:s(f,"payment_method")||"bank_transfer",p_reference:s(f,"reference")});if(error)back("error",error.message);revalidatePath("/accounting");revalidatePath("/dashboard");back("success","Expense recorded and posted to the ledger.");}
-export async function addOtherIncome(f:FormData){const amount=n(f,"amount");if(!(amount>0)||!Number.isFinite(amount)||!s(f,"description"))back("error","Enter a description and positive income amount.");const {supabase}=await requireUser();const {error}=await supabase.rpc("record_other_income",{p_date:s(f,"income_date")||null,p_received_account_code:s(f,"received_account_code"),p_amount:amount,p_description:s(f,"description"),p_reference:s(f,"reference")});if(error)back("error",error.message);revalidatePath("/accounting");back("success","Other income recorded and posted to the ledger.");}
+async function requireFinanceRole(){const {supabase,user}=await requireUser();const {membership}=await getWorkspace(supabase,user.id);if(!membership||!canAccessAccounting(membership.role))back("error","Your role cannot access company accounting.");return supabase;}
+export async function addExpense(f:FormData){const amount=n(f,"amount");if(!(amount>0)||!Number.isFinite(amount)||!s(f,"description"))back("error","Enter a description and positive expense amount.");const supabase=await requireFinanceRole();const {error}=await supabase.rpc("record_finance_expense",{p_date:s(f,"expense_date")||null,p_expense_account_code:s(f,"expense_account_code"),p_paid_from_account_code:s(f,"paid_from_account_code"),p_amount:amount,p_description:s(f,"description"),p_vendor:s(f,"vendor"),p_payment_method:s(f,"payment_method")||"bank_transfer",p_reference:s(f,"reference")});if(error)back("error",error.message);revalidatePath("/accounting");revalidatePath("/dashboard");back("success","Expense recorded and posted to the ledger.");}
+export async function addOtherIncome(f:FormData){const amount=n(f,"amount");if(!(amount>0)||!Number.isFinite(amount)||!s(f,"description"))back("error","Enter a description and positive income amount.");const supabase=await requireFinanceRole();const {error}=await supabase.rpc("record_other_income",{p_date:s(f,"income_date")||null,p_received_account_code:s(f,"received_account_code"),p_amount:amount,p_description:s(f,"description"),p_reference:s(f,"reference")});if(error)back("error",error.message);revalidatePath("/accounting");back("success","Other income recorded and posted to the ledger.");}
 export async function postManualJournal(f: FormData) {
   const amount = n(f, "amount");
   const debitCode = s(f, "debit_account_code");
   const creditCode = s(f, "credit_account_code");
   if (!(amount > 0) || !Number.isFinite(amount) || !s(f, "description")) back("error", "Enter a description and positive journal amount.");
   if (!debitCode || !creditCode || debitCode === creditCode) back("error", "Choose two different accounts for the debit and credit.");
-  const { supabase } = await requireUser();
+  const supabase = await requireFinanceRole();
   const { data: selected, error: accountError } = await supabase.from("finance_accounts").select("id,code,name").eq("is_active", true).in("code", [debitCode, creditCode]);
   if (accountError) back("error", accountError.message);
   const accounts = selected ?? [];
@@ -32,4 +34,23 @@ export async function postManualJournal(f: FormData) {
   });
   if (error) back("error", error.message);
   revalidatePath("/accounting"); back("success", "Balanced manual journal posted to the ledger.");
+}
+
+export async function saveFinancialGoals(f: FormData) {
+  const revenueGoal = Number(f.get("monthly_revenue_goal"));
+  const expenseBudget = Number(f.get("monthly_expense_budget"));
+  if (!Number.isFinite(revenueGoal) || revenueGoal < 0 || !Number.isFinite(expenseBudget) || expenseBudget < 0) {
+    back("error", "Enter non-negative monthly revenue and expense targets.");
+  }
+  const { supabase, user } = await requireUser();
+  const { membership } = await getWorkspace(supabase, user.id);
+  if (!membership || !isOwnerOrAdmin(membership.role)) back("error", "Only owners and admins can change company financial goals.");
+  const { error } = await supabase.rpc("set_financial_goals", {
+    p_monthly_revenue_goal: revenueGoal,
+    p_monthly_expense_budget: expenseBudget,
+  });
+  if (error) back("error", error.message);
+  revalidatePath("/accounting");
+  revalidatePath("/dashboard");
+  back("success", "Monthly financial goals saved.");
 }

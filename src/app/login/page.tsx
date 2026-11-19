@@ -10,7 +10,7 @@ export default function LoginPage() {
     <main className="auth-screen">
       <div className="auth-left">
         <div className="auth-brand"><div className="brand-mark">S</div><div><strong>SupplyOS</strong><span>Factory Operations Platform</span></div></div>
-        <div className="auth-copy"><div className="eyebrow eyebrow-light">ONE CONNECTED WORKSPACE</div><h1>From factory floor to final delivery.</h1><p>Bring bookings, stock, dispatch, and financial operations into one clear view.</p><div className="auth-mini-stats"><div><strong>07</strong><span>connected modules</span></div><div><strong>01</strong><span>source of truth</span></div><div><strong>24/7</strong><span>operational visibility</span></div></div></div>
+        <div className="auth-copy"><div className="eyebrow eyebrow-light">THREE ROLE-BASED WORKSPACES</div><h1>One workspace. The right tools for every role.</h1><p>Owners, managers, and employees sign in with their own accounts and open a workspace built for their responsibilities.</p><div className="auth-mini-stats"><div><strong>07</strong><span>connected modules</span></div><div><strong>01</strong><span>source of truth</span></div><div><strong>24/7</strong><span>operational visibility</span></div></div></div>
         <div className="auth-bottom">Designed for modern manufacturing and distribution teams.</div>
       </div>
       <div className="auth-right">

@@ -45,3 +45,16 @@ export const getWorkspace = cache(async function getWorkspace(supabase: Awaited<
     .maybeSingle();
   return { organization, membership };
 });
+
+
+/** Require an authenticated workspace member with one of the supplied roles.
+ * Keep this check in server actions as well as pages: client navigation is not
+ * an authorization boundary.
+ */
+export async function requireWorkspaceRole(allowedRoles: readonly string[], redirectTo = "/dashboard") {
+  const { supabase, user } = await requireUser();
+  const { membership, organization } = await getWorkspace(supabase, user.id);
+  const role = String(membership?.role ?? "").trim().toLowerCase();
+  if (!membership || !allowedRoles.includes(role)) redirect(redirectTo);
+  return { supabase, user, membership, organization, role };
+}

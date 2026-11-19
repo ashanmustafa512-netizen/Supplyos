@@ -34,14 +34,14 @@ export default async function AccountingPage({ searchParams }: { searchParams: P
   const expenses = expensesR.data ?? [];
   const entries = entriesR.data ?? [];
   const payments = paymentsR.data ?? [];
+  const revenue = Number(summary.ledger_revenue ?? 0);
+  const ledgerExpenses = Number(summary.ledger_expenses ?? 0);
   const revenueGoal = Number(goalsR.data?.monthly_revenue_goal ?? 0);
   const expenseBudget = Number(goalsR.data?.monthly_expense_budget ?? 0);
   const revenueProgress = revenueGoal > 0 ? Math.min(100, Math.round(revenue / revenueGoal * 100)) : 0;
   const expenseProgress = expenseBudget > 0 ? Math.min(100, Math.round(ledgerExpenses / expenseBudget * 100)) : 0;
   const canEditGoals = ["owner", "admin"].includes(String(membership.role).toLowerCase());
   const trend = rows(summary.monthly_trend);
-  const revenue = Number(summary.ledger_revenue ?? 0);
-  const ledgerExpenses = Number(summary.ledger_expenses ?? 0);
   const netIncome = revenue - ledgerExpenses;
   const expenseAccounts = accounts.filter(a => a.account_type === "expense");
   const cashAccounts = accounts.filter(a => ["1000", "1010", "1020", "1030"].includes(a.code));
